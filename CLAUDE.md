@@ -13,10 +13,10 @@ Sam — runs change/ops at a fintech, building side hustles on the side. **ADHD.
 - **Phase 2 (later):** real Claude-powered agents + tool integrations, wired in behind the existing `AgentEngine` interface. Don't build this until told.
 
 ## Tech stack
-Vite + React + TypeScript · **react-three-fiber + three.js + drei** for the 3D world/movement/models · React for UI overlays (dialogue, journal, scrolls) · **Zustand** as single source of truth · localStorage/JSON persistence (with file export/import). No backend, no auth. Runs on `npm run dev`.
+Vite + React + TypeScript · **painted 2.5D scene engine in plain React/DOM** (no game engine — parallax layers, SVG/canvas FX, a god-camera) · React for UI overlays (dialogue, journal, scrolls) · **Zustand** as single source of truth · localStorage/JSON persistence (with file export/import). No backend, no auth. Runs on `npm run dev`.
 
-## Visual style (decided)
-Late-90s **top-down god-game** in 3D (think **Black & White / Populous: The Beginning**), NOT 2D pixel art. Tilted 3/4 camera (~52°) that trails the Sovereign and orbits with Q/E. Cosy "Black & White" mood — warm sun, soft shadows, rounded low-poly buildings, lush grass. "Higher bit-rate" = 90s low-poly silhouettes with modern rendering (soft shadows, fog, AO-ish lighting). All geometry currently procedural (no asset files) so it runs instantly; swap in CC0 low-poly GLTF (Kenney.nl / Quaternius) later.
+## Visual style (decided — painterly 2.5D)
+**Painted isometric 2.5D**, à la the reference screenshot (lush forest glade, glowing crystals, light shafts, stone plaza). NOT pixel art, NOT real-time 3D. The look lives in **painted scene images** the owner generates and drops into `/public/scenes`; the engine renders them with parallax depth + glow FX. **Honest constraint stated to Sam:** Claude cannot author painterly art, and real-time 3D can't fake it — so scenes are owner-supplied PNGs. Camera = free **pan + zoom + parallax** (no live tilt/rotate, since painted art is single-angle). Until real art arrives, a procedural ATMOSPHERIC PLACEHOLDER (layered SVG) stands in — deliberately abstract, not painterly. Engine lives in `src/scene/` (SceneStage, useCamera, Backdrop, Motes, Hotspot); scenes are data-driven in `src/data/scenes.ts`.
 
 ## Architecture rules
 - **Data-driven:** characters, guilds, quests, authority levels defined in typed config/JSON. Adding a guild/character = editing data, not code.

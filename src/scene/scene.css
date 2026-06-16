@@ -1,0 +1,146 @@
+.scene-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0c1410;
+  cursor: grab;
+  user-select: none;
+}
+.scene-viewport:active {
+  cursor: grabbing;
+}
+
+.scene-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.scene-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.hotspot-layer {
+  pointer-events: none;
+}
+
+/* drifting atmosphere — sits above the scene, below the UI */
+.scene-motes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  z-index: 5;
+}
+
+/* darken the edges for that framed, cosy look */
+.scene-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(6, 10, 8, 0.55) 100%);
+}
+
+.scene-place-name {
+  position: absolute;
+  left: 18px;
+  bottom: 14px;
+  z-index: 7;
+  font-family: "Trebuchet MS", sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #f4e9cf;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* ── crystals & light shafts gently pulse ── */
+.crystal {
+  animation: crystal-pulse 3.4s ease-in-out infinite;
+}
+@keyframes crystal-pulse {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+.shafts {
+  animation: shaft-shimmer 6s ease-in-out infinite;
+  transform-origin: center top;
+}
+@keyframes shaft-shimmer {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+/* ── hotspots (placeholder characters) ── */
+.hotspot {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  font-family: "Trebuchet MS", sans-serif;
+}
+
+.hs-body {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.hotspot:hover .hs-body {
+  transform: scale(1.08);
+  filter: brightness(1.12);
+}
+
+.hs-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f4e9cf;
+  background: rgba(58, 42, 24, 0.85);
+  border: 1px solid #c9a24b;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.hs-marker {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 900;
+  font-size: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  margin-bottom: 2px;
+}
+.hs-marker.urgent {
+  animation: marker-bob 1s ease-in-out infinite;
+}
+@keyframes marker-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}

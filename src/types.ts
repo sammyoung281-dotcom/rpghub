@@ -102,6 +102,38 @@ export interface Dialogue {
   onResolve?: (choiceId: string) => void;
 }
 
+// ── Scenes: the painted 2.5D world ───────────────────────────────────────────
+
+/**
+ * A clickable character standing in a scene. Lives in scene (world) coordinates;
+ * the camera/parallax maths place it on screen. `marker` drives the floating
+ * quest indicator + colour.
+ */
+export interface SceneHotspot {
+  id: string;
+  characterId: CharacterId;
+  name: string;
+  emoji: string; // placeholder portrait until sprite art arrives
+  accent: string;
+  x: number; // world coords within the scene
+  y: number;
+  marker?: Urgency; // shows a floating ! / status pip when set
+}
+
+/**
+ * One painted place in the realm (the Keep, a guild hall, …).
+ * `backdrop` points at a painted image once supplied; until then the engine
+ * renders a procedural atmospheric placeholder of the same dimensions.
+ */
+export interface RealmScene {
+  id: string;
+  name: string;
+  width: number; // scene is larger than the viewport → you pan around it
+  height: number;
+  backdrop?: string; // /scenes/xyz.png when real art is dropped in
+  hotspots: SceneHotspot[];
+}
+
 // ── Needs You Now: the persistent proclamation scroll ────────────────────────
 
 export interface NeedItem {

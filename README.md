@@ -13,33 +13,50 @@ npm run dev        # → http://localhost:5173  (or set PORT=xxxx)
 
 ## Tech
 
-- **Vite + React + TypeScript** — UI overlays (dialogue, journal, scrolls) live in React.
-- **react-three-fiber + three.js + drei** — the 3D world, movement, models. Owns the canvas; React UI sits on top.
+- **Vite + React + TypeScript** — both the world and the UI overlays are React.
+- **Painted 2.5D scene engine** (plain DOM — no game engine): parallax layers, a
+  free god-camera (pan/zoom/glide), SVG + canvas atmosphere FX.
 - **Zustand** — single source of truth.
 - **localStorage / JSON** — persistence (added in later steps).
 
-## Visual style
+## Visual style — painterly 2.5D (owner-supplied art)
 
-Late-90s top-down **god-game in 3D** (Black & White / Populous), not 2D pixels.
-Tilted 3/4 camera (~52°) trails the Sovereign; **Q/E orbit the view**. Cosy mood:
-warm sun, soft shadows, rounded low-poly buildings, lush grass + fog.
+Painted isometric scenes like the reference (lush glade, glowing crystals, light
+shafts, stone plaza). **The look comes from painted PNGs you drop into
+`/public/scenes`** — see "Adding painted scenes" below. Until then a procedural
+*atmospheric placeholder* (layered SVG) stands in: deliberately abstract, not
+painterly. Camera is free **pan + zoom + parallax** (no live tilt/rotate — painted
+art is single-angle).
+
+> Honest note: Claude can't author painterly art, and real-time 3D can't fake the
+> painted feel. So scenes are images you generate/commission; the engine brings
+> them to life.
+
+## Adding painted scenes
+
+1. Generate/commission a painted backdrop image (see `SCENE_ART_SPEC.md` for size
+   + a copy-paste generation prompt).
+2. Save it to `public/scenes/<id>.png`.
+3. In `src/data/scenes.ts`, set that scene's `backdrop: "/scenes/<id>.png"` and
+   place `hotspots` (characters) at the right `x,y` over the art.
 
 ## Architecture (current + planned)
 
 ```
 src/
-  game/            3D world (react-three-fiber)
-    World.tsx      the <Canvas>, lights, sky, soft shadows — composes the scene
-    Hero.tsx       the Sovereign avatar + camera-follow + Q/E orbit
-    Keep.tsx       the High Keep structures (towers, walls, throne)
-    Scenery.tsx    grassland + ring of trees
-    useKeys.ts     keyboard-held-state hook
-  ui/              React overlays: DialogueBox, NeedsYouNow, Journal, DecreeQuill, Reports (later steps)
-  data/            content lives here — guilds, characters, quests (data-driven)
+  scene/           painted 2.5D world (plain React/DOM)
+    SceneStage.tsx the viewport: parallax layers + hotspots + camera
+    useCamera.ts   god-camera — pan (WASD/drag), zoom (wheel), smooth glide
+    Backdrop.tsx   procedural atmospheric PLACEHOLDER layers (swapped by real art)
+    Motes.tsx      drifting glow particles (canvas)
+    Hotspot.tsx    a clickable character + floating quest marker
+    interactions.ts summonCharacter(): glide camera + open dialogue
+  ui/              React overlays: DialogueBox, NeedsYouNow, Journal, … (later steps)
+  data/            content — scenes.ts, mockDialogues.ts, guilds/characters (later)
   store/           Zustand store (single source of truth)
   agent/           AgentEngine seam — see below
   types.ts         core domain types + urgency colour system
-  App.tsx          composes the 3D world + React overlays
+  App.tsx          composes the scene + React overlays
 ```
 
 ### The agent seam (where Phase 2 plugs in)

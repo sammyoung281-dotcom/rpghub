@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import type { Dialogue, NeedItem } from "../types";
 
+/** A request for the camera to glide to a point in the current scene. */
+export interface CameraTarget {
+  x: number;
+  y: number;
+  zoom?: number;
+}
+
 /**
  * The single source of truth. Phaser and React both read/write through this.
  * Step 2 introduces only what the dialogue box + Needs You Now scroll require;
@@ -20,6 +27,11 @@ interface RealmState {
   removeNeed: (id: string) => void;
   /** The single most urgent item — what the scroll shows big. */
   topNeed: () => NeedItem | null;
+
+  // ── Camera (the scene engine consumes & clears this) ──
+  cameraTarget: CameraTarget | null;
+  focusCamera: (t: CameraTarget) => void;
+  clearCameraTarget: () => void;
 }
 
 export const useRealmStore = create<RealmState>((set, get) => ({
@@ -40,4 +52,8 @@ export const useRealmStore = create<RealmState>((set, get) => ({
     const sorted = [...get().needs].sort((a, b) => b.priority - a.priority);
     return sorted[0] ?? null;
   },
+
+  cameraTarget: null,
+  focusCamera: (t) => set({ cameraTarget: t }),
+  clearCameraTarget: () => set({ cameraTarget: null }),
 }));
