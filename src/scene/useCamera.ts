@@ -8,6 +8,10 @@ export interface Camera {
 
 const MAX_ZOOM = 1.8;
 const PAN_SPEED = 900; // px/sec at zoom 1 (keyboard)
+// at fullest zoom-out the scene fills ~82% of the limiting axis, leaving an
+// atmosphere frame around the whole realm (so you can "see the background").
+const FRAME = 0.82;
+const OVERSCAN = 130; // px of atmosphere you can nudge the view past the edges
 
 interface Opts {
   sceneW: number;
@@ -40,22 +44,25 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
     return { w: el ? el.clientWidth : window.innerWidth, h: el ? el.clientHeight : window.innerHeight };
   };
 
-  // smallest zoom at which the scene still fully covers the viewport
-  const coverZoom = () => {
+  // zoom at which the WHOLE scene just fits the viewport (limiting axis)
+  const containZoom = () => {
     const { w, h } = vp();
-    return Math.max(w / sceneW, h / sceneH);
+    return Math.min(w / sceneW, h / sceneH);
   };
-  const clampZoom = (z: number) => Math.min(Math.max(z, coverZoom()), MAX_ZOOM);
+  // fullest zoom-out leaves an atmosphere frame around the whole realm
+  const minZoom = () => containZoom() * FRAME;
+  const clampZoom = (z: number) => Math.min(Math.max(z, minZoom()), MAX_ZOOM);
 
-  // keep the camera centre so the viewport stays fully inside the scene
+  // keep the camera centre near the scene (a little overscan into atmosphere).
+  // when an axis is fully covered, lock to its centre.
   const clamp = (c: Camera): Camera => {
     const zoom = clampZoom(c.zoom);
     const { w, h } = vp();
     const halfW = w / 2 / zoom;
     const halfH = h / 2 / zoom;
     const axis = (v: number, half: number, size: number) => {
-      const lo = half;
-      const hi = size - half;
+      const lo = half - OVERSCAN;
+      const hi = size - half + OVERSCAN;
       return lo >= hi ? size / 2 : Math.min(Math.max(v, lo), hi);
     };
     return { zoom, x: axis(c.x, halfW, sceneW), y: axis(c.y, halfH, sceneH) };
@@ -95,8 +102,8 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
     window.addEventListener("mouseup", mup);
     window.addEventListener("resize", onResize);
 
-    // fit the scene to the viewport on first mount
-    setCam((c) => clamp({ ...c, zoom: coverZoom() }));
+    // open on a whole-realm overview
+    setCam((c) => clamp({ ...c, zoom: containZoom() }));
 
     return () => {
       window.removeEventListener("keydown", down);
