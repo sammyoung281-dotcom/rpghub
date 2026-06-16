@@ -2,9 +2,9 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  /* atmospheric backstop: any sliver behind the scene reads as sky/forest,
-     never as a black void (the camera clamp already keeps the scene covering). */
-  background: linear-gradient(180deg, #16323a 0%, #244a3e 45%, #3f6a3c 78%, #4c7a38 100%);
+  /* matches the meadow's dark-forest vignette edge, so the bleeding foreground
+     blends seamlessly into the backdrop with no visible seam. */
+  background: #243f22;
   cursor: grab;
   user-select: none;
 }

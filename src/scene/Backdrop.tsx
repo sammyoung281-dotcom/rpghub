@@ -143,65 +143,49 @@ function regionLabel(r: SceneRegion): ReactNode {
   );
 }
 
+// How far the foreground bleeds past the map edges (scene px). Big enough that
+// at fullest zoom-out the grass still fills the viewport on all sides, so the
+// old parallax-edge artifacts can't appear. Trees + a vignette fill the bleed.
+const BLEED = 2400;
+
 // ── the layer stack ──────────────────────────────────────────────────────────
+// One ground layer only (parallax 1). The SVG renders with overflow visible and
+// draws everything from -BLEED to size+BLEED, so the foreground extends well
+// beyond the map and there are no floating background layers to glitch.
 export function placeholderLayers(scene: RealmScene): BackdropLayer[] {
   const w = scene.width;
   const h = scene.height;
-  const full = { width: "100%", height: "100%" } as const;
+  const ox = -BLEED;
+  const ow = w + BLEED * 2;
+  const oh = h + BLEED * 2;
   const keep = scene.regions.find((r) => r.id === "keep") ?? scene.regions[0];
 
-  // deterministic scatter for trees
+  // deterministic scatter for trees across the whole bleed area
   let seed = 9001;
   const rng = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
   const trees: Pt[] = [];
-  for (let i = 0; i < 90; i++) trees.push([rng() * w, h * 0.18 + rng() * h * 0.8]);
+  for (let i = 0; i < 220; i++) trees.push([ox + rng() * ow, ox + rng() * oh]);
 
   return [
-    {
-      key: "sky",
-      parallax: 0.15,
-      node: (
-        <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
-          <defs>
-            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#16323a" />
-              <stop offset="55%" stopColor="#2c5340" />
-              <stop offset="100%" stopColor="#467036" />
-            </linearGradient>
-            <radialGradient id="sun" cx="68%" cy="10%" r="45%">
-              <stop offset="0%" stopColor="#fff6d8" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="#ffe7a0" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <rect width={w} height={h} fill="url(#sky)" />
-          <rect width={w} height={h} fill="url(#sun)" />
-        </svg>
-      ),
-    },
-    {
-      key: "farscape",
-      parallax: 0.42,
-      node: (
-        <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
-          <path d={`M0 ${h * 0.34} Q ${w * 0.25} ${h * 0.2} ${w * 0.5} ${h * 0.32} T ${w} ${h * 0.3} L ${w} ${h} L 0 ${h} Z`} fill="#234a30" opacity="0.85" />
-          {Array.from({ length: 22 }).map((_, i) => (
-            <circle key={i} cx={(i / 21) * w} cy={h * (0.26 + (i % 3) * 0.02)} r={120 + (i % 4) * 30} fill="#2c5836" opacity="0.6" />
-          ))}
-        </svg>
-      ),
-    },
     {
       key: "ground",
       parallax: 1,
       node: (
-        <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
+        <svg
+          viewBox={`0 0 ${w} ${h}`}
+          style={{ width: "100%", height: "100%", overflow: "visible" }}
+        >
           <defs>
-            <radialGradient id="meadow" cx="50%" cy="48%" r="62%">
+            <radialGradient id="meadow" gradientUnits="userSpaceOnUse" cx={w / 2} cy={h / 2} r={Math.hypot(w / 2 + BLEED, h / 2 + BLEED)}>
               <stop offset="0%" stopColor="#6fa24a" />
-              <stop offset="100%" stopColor="#4c7a38" />
+              <stop offset="48%" stopColor="#5a8f3f" />
+              <stop offset="78%" stopColor="#3f6a31" />
+              <stop offset="100%" stopColor="#243f22" />
             </radialGradient>
           </defs>
-          <rect width={w} height={h} fill="url(#meadow)" />
+
+          {/* foreground meadow, bled far past the map edges + cosy edge vignette */}
+          <rect x={ox} y={ox} width={ow} height={oh} fill="url(#meadow)" />
 
           {/* paths from the Keep to each guild */}
           {scene.regions
@@ -234,16 +218,6 @@ export function placeholderLayers(scene: RealmScene): BackdropLayer[] {
           {scene.regions.map((r) => (
             <g key={"lbl-" + r.id}>{regionLabel(r)}</g>
           ))}
-        </svg>
-      ),
-    },
-    {
-      key: "fg",
-      parallax: 1.18,
-      node: (
-        <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
-          <path d={`M-60 ${h} Q ${w * 0.05} ${h * 0.55} ${w * 0.015} 0 L-300 0 L-300 ${h} Z`} fill="#14201a" />
-          <path d={`M${w + 60} ${h} Q ${w * 0.95} ${h * 0.55} ${w * 0.985} 0 L${w + 300} 0 L${w + 300} ${h} Z`} fill="#14201a" />
         </svg>
       ),
     },
