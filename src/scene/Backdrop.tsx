@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
+import type { RealmScene, SceneRegion } from "../types";
 
 /**
- * Procedural ATMOSPHERIC PLACEHOLDER backdrop — deliberately abstract, not
- * painterly (see README: real painted scenes are dropped in as PNGs later).
- * Returns a stack of full-scene layers; SceneStage applies parallax per layer
- * so panning gives a sense of depth. Layout/mood echoes the reference: misty
- * layered forest glade, glowing crystals, light shafts, a stone plaza.
+ * Procedural PLACEHOLDER for the continuous realm map — deliberately abstract,
+ * not painterly (real painted art is dropped in as a PNG later; see README).
+ * It fakes a 2.5D landscape: grass, connecting paths, raised stone platforms
+ * with simple isometric-style buildings per region, trees and crystals. Enough
+ * to navigate and see the layout; the real look comes from the painted map.
  */
 export interface BackdropLayer {
   key: string;
@@ -13,26 +14,162 @@ export interface BackdropLayer {
   node: ReactNode;
 }
 
-export function placeholderLayers(w: number, h: number): BackdropLayer[] {
+// ── tiny helpers ─────────────────────────────────────────────────────────────
+type Pt = [number, number];
+const pts = (a: Pt[]) => a.map(([x, y]) => `${x},${y}`).join(" ");
+
+/** Lighten (amt>0) / darken (amt<0) a #rrggbb hex. */
+function shade(hex: string, amt: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const c = (v: number) => Math.round(Math.min(255, Math.max(0, v + amt * 255)));
+  return `rgb(${c((n >> 16) & 255)},${c((n >> 8) & 255)},${c(n & 255)})`;
+}
+
+/** A raised stone platform (top ellipse + front wall) for the elevation feel. */
+function platform(cx: number, cy: number, rx: number, ry: number, h: number, color: string) {
+  return (
+    <g>
+      <path
+        d={`M ${cx - rx} ${cy} L ${cx - rx} ${cy + h} A ${rx} ${ry} 0 0 0 ${cx + rx} ${cy + h} L ${cx + rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx - rx} ${cy} Z`}
+        fill={shade(color, -0.16)}
+      />
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={color} />
+      <ellipse cx={cx} cy={cy} rx={rx * 0.74} ry={ry * 0.74} fill="none" stroke={shade(color, -0.1)} strokeWidth={6} strokeDasharray="26 16" />
+    </g>
+  );
+}
+
+/** A cosy faked-iso building (front wall + right side + gable roof + door). */
+function building(cx: number, baseY: number, w: number, wallH: number, wall: string, roof: string) {
+  const dep = w * 0.34;
+  const dy = dep * 0.5;
+  const rh = wallH * 0.62;
+  const topY = baseY - wallH;
+  const flb: Pt = [cx - w / 2, baseY];
+  const frb: Pt = [cx + w / 2, baseY];
+  const frt: Pt = [cx + w / 2, topY];
+  const flt: Pt = [cx - w / 2, topY];
+  const brb: Pt = [cx + w / 2 + dep, baseY - dy];
+  const brt: Pt = [cx + w / 2 + dep, topY - dy];
+  const ridgeF: Pt = [cx, topY - rh];
+  const ridgeB: Pt = [cx + dep, topY - rh - dy];
+  return (
+    <g>
+      <polygon points={pts([frb, brb, brt, frt])} fill={shade(wall, -0.16)} />
+      <polygon points={pts([flb, frb, frt, flt])} fill={wall} />
+      <polygon points={pts([frt, ridgeF, ridgeB, brt])} fill={shade(roof, -0.12)} />
+      <polygon points={pts([flt, frt, ridgeF])} fill={roof} />
+      {/* door + windows */}
+      <rect x={cx - w * 0.1} y={baseY - wallH * 0.5} width={w * 0.2} height={wallH * 0.5} rx={6} fill={shade(wall, -0.34)} />
+      <rect x={cx - w * 0.34} y={topY + wallH * 0.18} width={w * 0.16} height={w * 0.13} rx={4} fill={shade(wall, 0.22)} />
+      <rect x={cx + w * 0.18} y={topY + wallH * 0.18} width={w * 0.16} height={w * 0.13} rx={4} fill={shade(wall, 0.22)} />
+    </g>
+  );
+}
+
+function tower(cx: number, baseY: number, w: number, h: number, wall: string, roof: string) {
+  const topY = baseY - h;
+  return (
+    <g>
+      <rect x={cx - w / 2} y={topY} width={w} height={h} rx={8} fill={wall} />
+      <rect x={cx - w / 2} y={topY} width={w * 0.5} height={h} fill={shade(wall, 0.08)} />
+      <polygon points={pts([[cx - w * 0.62, topY], [cx + w * 0.62, topY], [cx, topY - h * 0.4]])} fill={roof} />
+      <rect x={cx - w * 0.16} y={baseY - h * 0.28} width={w * 0.32} height={h * 0.28} rx={5} fill={shade(wall, -0.34)} />
+    </g>
+  );
+}
+
+function smallTree(cx: number, cy: number, s: number) {
+  return (
+    <g transform={`translate(${cx} ${cy}) scale(${s})`}>
+      <ellipse cx={0} cy={4} rx={34} ry={12} fill="rgba(0,0,0,0.18)" />
+      <rect x={-7} y={-34} width={14} height={40} rx={5} fill="#6b4a2b" />
+      <circle cx={0} cy={-54} r={40} fill="#3f6a37" />
+      <circle cx={-18} cy={-44} r={28} fill="#356030" />
+      <circle cx={18} cy={-48} r={30} fill="#477a3c" />
+    </g>
+  );
+}
+
+// region accent palette for the placeholder buildings
+const REGION_COLOR: Record<string, { wall: string; roof: string }> = {
+  keep: { wall: "#cfc39a", roof: "#7a2f2b" },
+  merchants: { wall: "#d8b25a", roof: "#8a5a22" },
+  ledger: { wall: "#8fa6bd", roof: "#3c5a74" },
+  hearth: { wall: "#d39a72", roof: "#8a4a2c" },
+  scholars: { wall: "#9bbf78", roof: "#4a6d3a" },
+};
+
+function regionBuildings(r: SceneRegion): ReactNode {
+  const col = REGION_COLOR[r.id] ?? REGION_COLOR.keep;
+  const stone = "#b3a684";
+  if (r.id === "keep") {
+    return (
+      <g>
+        {platform(r.cx, r.cy, 420, 150, 46, "#b7a9cf")}
+        {tower(r.cx - 300, r.cy - 30, 90, 320, stone, col.roof)}
+        {tower(r.cx + 300, r.cy - 30, 90, 320, stone, col.roof)}
+        {building(r.cx, r.cy - 10, 460, 230, col.wall, col.roof)}
+      </g>
+    );
+  }
+  if (r.id === "scholars") {
+    return (
+      <g>
+        {platform(r.cx, r.cy, 320, 120, 40, stone)}
+        {tower(r.cx, r.cy - 20, 130, 420, col.wall, col.roof)}
+        {building(r.cx - 150, r.cy + 10, 200, 150, col.wall, col.roof)}
+      </g>
+    );
+  }
+  return (
+    <g>
+      {platform(r.cx, r.cy, 330, 130, 42, stone)}
+      {building(r.cx, r.cy, 360, 200, col.wall, col.roof)}
+    </g>
+  );
+}
+
+function regionLabel(r: SceneRegion): ReactNode {
+  const w = r.name.length * 16 + 60;
+  const y = r.id === "keep" ? r.cy - 420 : r.id === "scholars" ? r.cy - 480 : r.cy - 300;
+  return (
+    <g>
+      <rect x={r.cx - w / 2} y={y} width={w} height={48} rx={12} fill="#3a2a18cc" stroke="#c9a24b" strokeWidth={2} />
+      <text x={r.cx} y={y + 32} textAnchor="middle" fontFamily="Trebuchet MS, sans-serif" fontSize={28} fill="#f4e9cf">
+        {r.emoji} {r.name}
+      </text>
+    </g>
+  );
+}
+
+// ── the layer stack ──────────────────────────────────────────────────────────
+export function placeholderLayers(scene: RealmScene): BackdropLayer[] {
+  const w = scene.width;
+  const h = scene.height;
   const full = { width: "100%", height: "100%" } as const;
+  const keep = scene.regions.find((r) => r.id === "keep") ?? scene.regions[0];
+
+  // deterministic scatter for trees
+  let seed = 9001;
+  const rng = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  const trees: Pt[] = [];
+  for (let i = 0; i < 90; i++) trees.push([rng() * w, h * 0.18 + rng() * h * 0.8]);
 
   return [
-    // ── sky + sun glow ──
     {
       key: "sky",
-      parallax: 0.12,
+      parallax: 0.15,
       node: (
         <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
           <defs>
             <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#16323a" />
-              <stop offset="42%" stopColor="#244a3e" />
-              <stop offset="78%" stopColor="#3f6a3c" />
-              <stop offset="100%" stopColor="#5d8a44" />
+              <stop offset="55%" stopColor="#2c5340" />
+              <stop offset="100%" stopColor="#467036" />
             </linearGradient>
-            <radialGradient id="sun" cx="72%" cy="14%" r="42%">
-              <stop offset="0%" stopColor="#fff6d8" stopOpacity="0.9" />
-              <stop offset="35%" stopColor="#ffe7a0" stopOpacity="0.35" />
+            <radialGradient id="sun" cx="68%" cy="10%" r="45%">
+              <stop offset="0%" stopColor="#fff6d8" stopOpacity="0.85" />
               <stop offset="100%" stopColor="#ffe7a0" stopOpacity="0" />
             </radialGradient>
           </defs>
@@ -41,153 +178,72 @@ export function placeholderLayers(w: number, h: number): BackdropLayer[] {
         </svg>
       ),
     },
-
-    // ── far cliffs + glowing crystals ──
     {
-      key: "cliffs",
-      parallax: 0.28,
+      key: "farscape",
+      parallax: 0.42,
       node: (
         <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
-          <defs>
-            <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="10" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          {/* left cliff mass */}
-          <path
-            d={`M0 ${h} L0 ${h * 0.18} L${w * 0.1} ${h * 0.28} L${w * 0.18} ${h * 0.15} L${w * 0.26} ${h * 0.34} L${w * 0.3} ${h} Z`}
-            fill="#1c3330"
-          />
-          {/* right cliff mass */}
-          <path
-            d={`M${w} ${h} L${w} ${h * 0.22} L${w * 0.88} ${h * 0.3} L${w * 0.8} ${h * 0.18} L${w * 0.72} ${h * 0.36} L${w * 0.7} ${h} Z`}
-            fill="#1c3330"
-          />
-          {/* crystal clusters */}
-          {[
-            [w * 0.07, h * 0.55],
-            [w * 0.12, h * 0.62],
-            [w * 0.83, h * 0.5],
-            [w * 0.9, h * 0.58],
-          ].map(([cx, cy], i) => (
-            <g key={i} filter="url(#glow)" className="crystal">
-              <polygon
-                points={`${cx},${cy - 36} ${cx + 12},${cy} ${cx},${cy + 14} ${cx - 12},${cy}`}
-                fill="#5fe6e0"
-                opacity="0.92"
-              />
-              <polygon
-                points={`${cx + 16},${cy - 22} ${cx + 26},${cy + 4} ${cx + 16},${cy + 12} ${cx + 8},${cy + 2}`}
-                fill="#3fc8d8"
-                opacity="0.85"
-              />
-            </g>
+          <path d={`M0 ${h * 0.34} Q ${w * 0.25} ${h * 0.2} ${w * 0.5} ${h * 0.32} T ${w} ${h * 0.3} L ${w} ${h} L 0 ${h} Z`} fill="#234a30" opacity="0.85" />
+          {Array.from({ length: 22 }).map((_, i) => (
+            <circle key={i} cx={(i / 21) * w} cy={h * (0.26 + (i % 3) * 0.02)} r={120 + (i % 4) * 30} fill="#2c5836" opacity="0.6" />
           ))}
         </svg>
       ),
     },
-
-    // ── mid forest canopy ──
     {
-      key: "canopy",
-      parallax: 0.5,
-      node: (
-        <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
-          {Array.from({ length: 14 }).map((_, i) => {
-            const cx = (i / 13) * w;
-            const cy = h * (0.28 + (i % 3) * 0.04);
-            const r = 130 + (i % 4) * 40;
-            return (
-              <g key={i}>
-                <rect x={cx - 14} y={cy} width="28" height={h * 0.5} fill="#2e4a2a" />
-                <circle cx={cx} cy={cy} r={r} fill="#37592f" />
-                <circle cx={cx - r * 0.4} cy={cy + 20} r={r * 0.7} fill="#2f4e29" />
-                <circle cx={cx + r * 0.4} cy={cy + 10} r={r * 0.7} fill="#3d6334" />
-              </g>
-            );
-          })}
-        </svg>
-      ),
-    },
-
-    // ── light shafts ──
-    {
-      key: "shafts",
-      parallax: 0.44,
-      node: (
-        <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
-          <defs>
-            <linearGradient id="shaft" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#fff3c8" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#fff3c8" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <g className="shafts">
-            {[0.3, 0.45, 0.6, 0.72].map((fx, i) => {
-              const x = w * fx;
-              return (
-                <polygon
-                  key={i}
-                  points={`${x},0 ${x + 120},0 ${x + 320},${h} ${x - 80},${h}`}
-                  fill="url(#shaft)"
-                  opacity={0.5 - i * 0.06}
-                />
-              );
-            })}
-          </g>
-        </svg>
-      ),
-    },
-
-    // ── ground plaza (parallax 1 — hotspots live on this plane) ──
-    {
-      key: "plaza",
+      key: "ground",
       parallax: 1,
       node: (
         <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
           <defs>
-            <radialGradient id="grass" cx="50%" cy="62%" r="60%">
+            <radialGradient id="meadow" cx="50%" cy="48%" r="62%">
               <stop offset="0%" stopColor="#6fa24a" />
               <stop offset="100%" stopColor="#4c7a38" />
             </radialGradient>
           </defs>
-          <rect x="0" y={h * 0.42} width={w} height={h * 0.58} fill="url(#grass)" />
-          {/* stone plaza ellipse */}
-          <ellipse cx={w * 0.55} cy={h * 0.66} rx={w * 0.26} ry={h * 0.2} fill="#b9ab86" />
-          <ellipse cx={w * 0.55} cy={h * 0.66} rx={w * 0.26} ry={h * 0.2} fill="none" stroke="#9a8c66" strokeWidth="6" />
-          {/* knotwork ring */}
-          <ellipse cx={w * 0.55} cy={h * 0.66} rx={w * 0.2} ry={h * 0.15} fill="none" stroke="#8a7b58" strokeWidth="4" strokeDasharray="22 14" />
-          <ellipse cx={w * 0.55} cy={h * 0.66} rx={w * 0.13} ry={h * 0.1} fill="none" stroke="#8a7b58" strokeWidth="3" strokeDasharray="14 10" />
-          {/* glowing blue lantern-pillars flanking the plaza */}
-          {[
-            [w * 0.4, h * 0.78],
-            [w * 0.71, h * 0.78],
-          ].map(([cx, cy], i) => (
-            <g key={i} className="crystal">
-              <rect x={cx - 10} y={cy - 70} width="20" height="70" rx="5" fill="#5a6b8a" />
-              <circle cx={cx} cy={cy - 78} r="14" fill="#6fd6ff" style={{ filter: "drop-shadow(0 0 14px #6fd6ff)" }} />
-            </g>
+          <rect width={w} height={h} fill="url(#meadow)" />
+
+          {/* paths from the Keep to each guild */}
+          {scene.regions
+            .filter((r) => r.id !== "keep")
+            .map((r) => (
+              <path
+                key={"path-" + r.id}
+                d={`M ${keep.cx} ${keep.cy + 40} Q ${(keep.cx + r.cx) / 2} ${(keep.cy + r.cy) / 2 + 80} ${r.cx} ${r.cy}`}
+                fill="none"
+                stroke="#c2b083"
+                strokeWidth={70}
+                strokeLinecap="round"
+                opacity="0.7"
+              />
+            ))}
+
+          {/* scattered trees (drawn before buildings so buildings sit in front) */}
+          {trees.map((t, i) => (
+            <g key={"tree-" + i}>{smallTree(t[0], t[1], 0.7 + rng() * 0.7)}</g>
+          ))}
+
+          {/* regions: platform + buildings, painted back-to-front by cy */}
+          {[...scene.regions]
+            .sort((a, b) => a.cy - b.cy)
+            .map((r) => (
+              <g key={"reg-" + r.id}>{regionBuildings(r)}</g>
+            ))}
+
+          {/* region nameplates on top */}
+          {scene.regions.map((r) => (
+            <g key={"lbl-" + r.id}>{regionLabel(r)}</g>
           ))}
         </svg>
       ),
     },
-
-    // ── foreground frame (closest — moves most) ──
     {
       key: "fg",
-      parallax: 1.22,
+      parallax: 1.18,
       node: (
         <svg viewBox={`0 0 ${w} ${h}`} style={full} preserveAspectRatio="xMidYMid slice">
-          {/* big dark trunks framing left & right */}
-          <path d={`M-40 ${h} Q ${w * 0.06} ${h * 0.5} ${w * 0.02} 0 L-200 0 L-200 ${h} Z`} fill="#152019" />
-          <path d={`M${w + 40} ${h} Q ${w * 0.94} ${h * 0.5} ${w * 0.98} 0 L${w + 200} 0 L${w + 200} ${h} Z`} fill="#152019" />
-          {/* foreground foliage clumps */}
-          <circle cx={w * 0.06} cy={h * 0.2} r="170" fill="#1c2b1d" />
-          <circle cx={w * 0.95} cy={h * 0.25} r="190" fill="#1c2b1d" />
+          <path d={`M-60 ${h} Q ${w * 0.05} ${h * 0.55} ${w * 0.015} 0 L-300 0 L-300 ${h} Z`} fill="#14201a" />
+          <path d={`M${w + 60} ${h} Q ${w * 0.95} ${h * 0.55} ${w * 0.985} 0 L${w + 300} 0 L${w + 300} ${h} Z`} fill="#14201a" />
         </svg>
       ),
     },

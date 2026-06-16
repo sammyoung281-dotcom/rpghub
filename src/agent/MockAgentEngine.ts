@@ -20,6 +20,24 @@ const SCRIPTED_QUESTS: Record<string, Omit<Quest, "id" | "createdAt" | "status">
       "But the testing is unfinished, and coin must be spent on it. I'll not gamble the treasury without your nod.",
     ],
   },
+  edmund: {
+    title: "Approve the change-window for the ledger migration",
+    guildId: "ledger",
+    ownerId: "edmund",
+    chunks: [
+      "Sovereign. The great migration is ready, but it must run in a quiet window — and that means weekend hours.",
+      "Procedure forbids me to proceed without your seal. Grant it, and the Order will move like clockwork.",
+    ],
+  },
+  wren: {
+    title: "Settle the quarter's overdue tributes",
+    guildId: "hearth",
+    ownerId: "wren",
+    chunks: [
+      "A gentle word, my liege: three household tributes have slipped past their day.",
+      "Nothing dire yet — but say the word and I'll see them all settled before dusk.",
+    ],
+  },
 };
 
 export class MockAgentEngine implements AgentEngine {

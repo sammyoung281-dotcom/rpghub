@@ -8,11 +8,15 @@ parallax, glow, camera and characters — you supply the painted *places*.
 | Thing | Value |
 |---|---|
 | Format | **PNG** (JPG ok if no transparency needed) |
-| Size | **2400 × 1500 px** (matches the default scene; bigger e.g. 3200×2000 is fine — just keep 8:5) |
-| Save to | `public/scenes/<id>.png` (e.g. `public/scenes/high-glade.png`) |
-| Wire up | in `src/data/scenes.ts` set `backdrop: "/scenes/high-glade.png"` |
+| Size | **4800 × 3000 px** for the one continuous realm map (matches `scenes.ts`; keep the 8:5 ratio if you resize) |
+| Save to | `public/scenes/realm.png` |
+| Wire up | in `src/data/scenes.ts` set `backdrop: "/scenes/realm.png"` |
 
-The image is **larger than the screen on purpose** — you pan/zoom around it.
+The realm is **one big continuous map** — all five spaces painted into a single
+image, with the High Keep central and the four guilds around it. The camera pans
+and fast-travels across it. The image is far larger than the screen on purpose.
+(If 4800×3000 is too big for your generator, make it in sections and stitch, or
+shrink the scene `width`/`height` in `scenes.ts` to match your image.)
 
 ## Composition rules (so characters + camera work)
 

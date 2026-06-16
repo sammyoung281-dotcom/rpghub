@@ -121,9 +121,24 @@ export interface SceneHotspot {
 }
 
 /**
- * One painted place in the realm (the Keep, a guild hall, …).
- * `backdrop` points at a painted image once supplied; until then the engine
- * renders a procedural atmospheric placeholder of the same dimensions.
+ * A named place within the one big continuous map (the Keep, a guild hall…).
+ * Used for fast-travel and to lay out the placeholder buildings. `cx,cy` is the
+ * region's centre on the map; `focusZoom` is how tight to frame it on travel.
+ */
+export interface SceneRegion {
+  id: string; // "keep" or a GuildId
+  guildId: GuildId | null; // null = High Keep
+  name: string;
+  emoji: string;
+  cx: number;
+  cy: number;
+  focusZoom: number;
+}
+
+/**
+ * The realm map. One large continuous scene the camera pans across; all spaces
+ * live inside it as `regions`. `backdrop` points at painted art once supplied;
+ * until then the engine renders a procedural placeholder of the same dimensions.
  */
 export interface RealmScene {
   id: string;
@@ -131,6 +146,7 @@ export interface RealmScene {
   width: number; // scene is larger than the viewport → you pan around it
   height: number;
   backdrop?: string; // /scenes/xyz.png when real art is dropped in
+  regions: SceneRegion[];
   hotspots: SceneHotspot[];
 }
 

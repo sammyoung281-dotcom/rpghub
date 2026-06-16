@@ -48,6 +48,8 @@ interface RealmState {
   // ── UI panels ──
   journalOpen: boolean;
   setJournalOpen: (open: boolean) => void;
+  mapOpen: boolean;
+  setMapOpen: (open: boolean) => void;
 }
 
 export const useRealmStore = create<RealmState>((set, get) => ({
@@ -110,4 +112,6 @@ export const useRealmStore = create<RealmState>((set, get) => ({
 
   journalOpen: false,
   setJournalOpen: (open) => set({ journalOpen: open }),
+  mapOpen: false,
+  setMapOpen: (open) => set({ mapOpen: open }),
 }));

@@ -3,6 +3,7 @@ import SceneStage from "./scene/SceneStage";
 import DialogueBox from "./ui/DialogueBox";
 import NeedsYouNow from "./ui/NeedsYouNow";
 import Journal from "./ui/Journal";
+import RealmMap from "./ui/RealmMap";
 import { useRealmStore } from "./store/useRealmStore";
 import { SCENES, STARTING_SCENE } from "./data/scenes";
 import { summonCharacter } from "./scene/interactions";
@@ -11,6 +12,7 @@ import { agent } from "./agent";
 
 export default function App() {
   const setJournalOpen = useRealmStore((s) => s.setJournalOpen);
+  const setMapOpen = useRealmStore((s) => s.setMapOpen);
 
   // ── Seed the realm from the AgentEngine ─────────────────────────────────────
   // Ask each character's (mock) brain for an opening quest. Each offered quest
@@ -43,13 +45,20 @@ export default function App() {
       <NeedsYouNow />
       <DialogueBox />
       <Journal />
+      <RealmMap />
 
-      <button className="tome-btn" onClick={() => setJournalOpen(true)} title="Open the Journal">
-        📖
-        <span>Journal</span>
-      </button>
+      <div className="tool-rail">
+        <button className="tome-btn" onClick={() => setMapOpen(true)} title="Fast-travel">
+          🗺️
+          <span>Travel</span>
+        </button>
+        <button className="tome-btn" onClick={() => setJournalOpen(true)} title="Open the Journal">
+          📖
+          <span>Journal</span>
+        </button>
+      </div>
 
-      <div className="hint">Drag or WASD to roam · scroll to zoom · click a character</div>
+      <div className="hint">Drag or WASD to roam · scroll to zoom · click a character · 🗺️ to travel</div>
     </>
   );
 }

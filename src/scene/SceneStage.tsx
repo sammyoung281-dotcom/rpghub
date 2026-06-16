@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRealmStore } from "../store/useRealmStore";
 import { SCENES, STARTING_SCENE } from "../data/scenes";
 import { placeholderLayers, type BackdropLayer } from "./Backdrop";
@@ -51,22 +51,27 @@ export default function SceneStage() {
     return `translate(${tx}px, ${ty}px)`;
   };
 
-  const layers: BackdropLayer[] = scene.backdrop
-    ? [
-        {
-          key: "painted",
-          parallax: 1,
-          node: (
-            <img
-              src={scene.backdrop}
-              alt={scene.name}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              draggable={false}
-            />
-          ),
-        },
-      ]
-    : placeholderLayers(scene.width, scene.height);
+  // memoised so the big map SVG isn't rebuilt on every camera frame
+  const layers: BackdropLayer[] = useMemo(
+    () =>
+      scene.backdrop
+        ? [
+            {
+              key: "painted",
+              parallax: 1,
+              node: (
+                <img
+                  src={scene.backdrop}
+                  alt={scene.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  draggable={false}
+                />
+              ),
+            },
+          ]
+        : placeholderLayers(scene),
+    [scene]
+  );
 
   return (
     <div id="game-root" ref={viewportRef} className="scene-viewport">

@@ -1,0 +1,87 @@
+.map-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  background: rgba(10, 7, 4, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: map-fade 0.15s ease-out;
+}
+@keyframes map-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.map-panel {
+  width: min(440px, 92vw);
+  background: linear-gradient(180deg, #efe2c0, #e3d2a8);
+  color: #3a2a18;
+  border: 3px solid #6b4a2b;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  padding: 16px 18px 18px;
+  font-family: "Trebuchet MS", sans-serif;
+  animation: map-rise 0.18s ease-out;
+}
+@keyframes map-rise {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid rgba(107, 74, 43, 0.35);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+.map-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.map-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6b4a2b;
+}
+
+.map-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-place {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 2px solid #b89a6a;
+  border-radius: 10px;
+  background: #f6efda;
+  cursor: pointer;
+  font: 700 16px "Trebuchet MS", sans-serif;
+  color: #3a2a18;
+  text-align: left;
+  transition: transform 0.08s ease, filter 0.12s ease;
+}
+.map-place:hover {
+  filter: brightness(1.04);
+  transform: translateX(3px);
+}
+.map-emoji {
+  font-size: 24px;
+}
+.map-name {
+  flex: 1 1 auto;
+}
+.map-pip {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}

@@ -38,9 +38,24 @@ export function summonCharacter(scene: RealmScene, characterId: string) {
     return;
   }
 
-  // no pending quest — fall back to a scripted greeting
+  // no pending quest — a scripted greeting, or a generated one from persona
   const base = MOCK_DIALOGUES[characterId];
-  if (base) store.openDialogue({ ...base, onResolve: () => store.removeNeed(`need-${characterId}`) });
+  if (base) {
+    store.openDialogue({ ...base, onResolve: () => store.removeNeed(`need-${characterId}`) });
+    return;
+  }
+  const char = getCharacter(characterId);
+  if (char) {
+    store.openDialogue({
+      id: `greet-${characterId}`,
+      speakerName: char.name,
+      speakerTitle: char.title,
+      portrait: char.portrait,
+      accent: guildAccent(char.guildId),
+      chunks: [`${char.role}.`, "All is in hand here, Sovereign. I'll send word the moment I need you."],
+      choices: [{ id: "ok", label: "Carry on", tone: "neutral" }],
+    });
+  }
 }
 
 // minimal accent lookup without importing guild data circularly into hot paths
