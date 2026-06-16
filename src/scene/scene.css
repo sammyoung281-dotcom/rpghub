@@ -2,7 +2,9 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #0c1410;
+  /* atmospheric backstop: any sliver behind the scene reads as sky/forest,
+     never as a black void (the camera clamp already keeps the scene covering). */
+  background: linear-gradient(180deg, #16323a 0%, #244a3e 45%, #3f6a3c 78%, #4c7a38 100%);
   cursor: grab;
   user-select: none;
 }

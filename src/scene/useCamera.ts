@@ -6,8 +6,7 @@ export interface Camera {
   zoom: number;
 }
 
-const MIN_ZOOM = 0.45;
-const MAX_ZOOM = 1.6;
+const MAX_ZOOM = 1.8;
 const PAN_SPEED = 900; // px/sec at zoom 1 (keyboard)
 
 interface Opts {
@@ -20,37 +19,49 @@ interface Opts {
 }
 
 /**
- * God-camera over a painted scene: pan with WASD/arrows or drag, zoom on wheel,
- * and glide smoothly to a focus target. Returns the live camera + a setter the
- * stage reads each frame. Clamps so you can't fly off into the void.
+ * God-camera over a painted scene: pan (WASD/drag), zoom (wheel), glide-to-focus.
+ *
+ * Bounded so the illusion never breaks: zoom can't go below the "cover" zoom
+ * (the scene always fills the viewport), and panning can't push the viewport
+ * past the scene edges. When an axis is fully covered, the camera locks to the
+ * centre on that axis (you can only pan along the axis that has slack).
  */
 export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusConsumed }: Opts) {
-  const [cam, setCam] = useState<Camera>({ x: sceneW / 2, y: sceneH / 2, zoom: 0.7 });
+  const [cam, setCam] = useState<Camera>({ x: sceneW / 2, y: sceneH / 2, zoom: 1 });
   const camRef = useRef(cam);
   camRef.current = cam;
 
   const keys = useRef<Record<string, boolean>>({});
   const glideTo = useRef<{ x: number; y: number; zoom: number } | null>(null);
-  const drag = useRef<{ active: boolean; lastX: number; lastY: number }>({
-    active: false,
-    lastX: 0,
-    lastY: 0,
-  });
+  const drag = useRef({ active: false, lastX: 0, lastY: 0 });
 
-  // clamp the camera centre so the viewport edges stay near the scene
-  const clamp = (c: Camera): Camera => {
+  const vp = () => {
     const el = viewportRef.current;
-    const halfW = (el ? el.clientWidth : 800) / 2 / c.zoom;
-    const halfH = (el ? el.clientHeight : 600) / 2 / c.zoom;
-    const margin = 220; // allow a little overscan into the atmosphere
-    return {
-      zoom: c.zoom,
-      x: Math.min(Math.max(c.x, halfW - margin), sceneW - halfW + margin),
-      y: Math.min(Math.max(c.y, halfH - margin), sceneH - halfH + margin),
-    };
+    return { w: el ? el.clientWidth : window.innerWidth, h: el ? el.clientHeight : window.innerHeight };
   };
 
-  // keyboard + wheel + drag listeners
+  // smallest zoom at which the scene still fully covers the viewport
+  const coverZoom = () => {
+    const { w, h } = vp();
+    return Math.max(w / sceneW, h / sceneH);
+  };
+  const clampZoom = (z: number) => Math.min(Math.max(z, coverZoom()), MAX_ZOOM);
+
+  // keep the camera centre so the viewport stays fully inside the scene
+  const clamp = (c: Camera): Camera => {
+    const zoom = clampZoom(c.zoom);
+    const { w, h } = vp();
+    const halfW = w / 2 / zoom;
+    const halfH = h / 2 / zoom;
+    const axis = (v: number, half: number, size: number) => {
+      const lo = half;
+      const hi = size - half;
+      return lo >= hi ? size / 2 : Math.min(Math.max(v, lo), hi);
+    };
+    return { zoom, x: axis(c.x, halfW, sceneW), y: axis(c.y, halfH, sceneH) };
+  };
+
+  // input listeners
   useEffect(() => {
     const el = viewportRef.current;
     const down = (e: KeyboardEvent) => (keys.current[e.code] = true);
@@ -59,7 +70,7 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
       glideTo.current = null;
-      setCam((c) => clamp({ ...c, zoom: clampZoom(c.zoom * (e.deltaY < 0 ? 1.12 : 0.89)) }));
+      setCam((c) => clamp({ ...c, zoom: c.zoom * (e.deltaY < 0 ? 1.12 : 0.89) }));
     };
     const mdown = (e: MouseEvent) => {
       drag.current = { active: true, lastX: e.clientX, lastY: e.clientY };
@@ -74,6 +85,7 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
       setCam((c) => clamp({ ...c, x: c.x - dx / c.zoom, y: c.y - dy / c.zoom }));
     };
     const mup = () => (drag.current.active = false);
+    const onResize = () => setCam((c) => clamp(c));
 
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
@@ -81,6 +93,11 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
     el?.addEventListener("mousedown", mdown);
     window.addEventListener("mousemove", mmove);
     window.addEventListener("mouseup", mup);
+    window.addEventListener("resize", onResize);
+
+    // fit the scene to the viewport on first mount
+    setCam((c) => clamp({ ...c, zoom: coverZoom() }));
+
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
@@ -88,6 +105,7 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
       el?.removeEventListener("mousedown", mdown);
       window.removeEventListener("mousemove", mmove);
       window.removeEventListener("mouseup", mup);
+      window.removeEventListener("resize", onResize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -102,6 +120,7 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
       };
       onFocusConsumed();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusTarget, onFocusConsumed]);
 
   // animation loop: keyboard pan + glide easing
@@ -118,14 +137,12 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
 
       const g = glideTo.current;
       if (g) {
-        const t = 1 - Math.pow(0.0025, dt); // smooth ease
+        const t = 1 - Math.pow(0.0025, dt);
         nx += (g.x - nx) * t;
         ny += (g.y - ny) * t;
         nz += (g.zoom - nz) * t;
         if (Math.hypot(g.x - nx, g.y - ny) < 2 && Math.abs(g.zoom - nz) < 0.01) {
-          nx = g.x;
-          ny = g.y;
-          nz = g.zoom;
+          ({ x: nx, y: ny, zoom: nz } = g);
           glideTo.current = null;
         }
       } else {
@@ -147,8 +164,4 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
   }, []);
 
   return cam;
-}
-
-function clampZoom(z: number) {
-  return Math.min(Math.max(z, MIN_ZOOM), MAX_ZOOM);
 }
