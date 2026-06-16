@@ -32,6 +32,16 @@
   pointer-events: none;
 }
 
+/* crisp pixel art — no smoothing when the camera scales layers up */
+.pixel-canvas,
+.pixel-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
 /* drifting atmosphere — sits above the scene, below the UI */
 .scene-motes {
   position: absolute;

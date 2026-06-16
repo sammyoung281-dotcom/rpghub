@@ -1,12 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRealmStore } from "../store/useRealmStore";
 import { SCENES, STARTING_SCENE } from "../data/scenes";
-import { placeholderLayers, type BackdropLayer } from "./Backdrop";
 import { useCamera } from "./useCamera";
 import Hotspot from "./Hotspot";
 import Motes from "./Motes";
+import PixelPlaceholder from "./PixelPlaceholder";
 import { summonCharacter } from "./interactions";
 import "./scene.css";
+
+interface RenderLayer {
+  key: string;
+  parallax: number;
+  node: ReactNode;
+}
 
 /**
  * The painted 2.5D world. Renders the active scene as a stack of parallax
@@ -51,27 +57,26 @@ export default function SceneStage() {
     return `translate(${tx}px, ${ty}px)`;
   };
 
-  // memoised so the big map SVG isn't rebuilt on every camera frame
-  const layers: BackdropLayer[] = useMemo(
-    () =>
-      scene.backdrop
-        ? [
-            {
-              key: "painted",
-              parallax: 1,
-              node: (
-                <img
-                  src={scene.backdrop}
-                  alt={scene.name}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  draggable={false}
-                />
-              ),
-            },
-          ]
-        : placeholderLayers(scene),
-    [scene]
-  );
+  // Pixel layers: real owner-supplied PNGs if present, else the procedural
+  // placeholder. All rendered crisp (image-rendering: pixelated, see scene.css).
+  const layers: RenderLayer[] = useMemo(() => {
+    if (scene.layers?.length) {
+      return scene.layers.map((l, i) => ({
+        key: `${l.z}-${i}`,
+        parallax: l.parallax ?? 1,
+        node: (
+          <img
+            className="pixel-img"
+            src={l.src}
+            alt=""
+            style={{ width: "100%", height: "100%" }}
+            draggable={false}
+          />
+        ),
+      }));
+    }
+    return [{ key: "pixel-placeholder", parallax: 1, node: <PixelPlaceholder scene={scene} /> }];
+  }, [scene]);
 
   return (
     <div id="game-root" ref={viewportRef} className="scene-viewport">

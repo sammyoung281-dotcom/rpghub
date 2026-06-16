@@ -102,12 +102,57 @@ export interface Dialogue {
   onResolve?: (choiceId: string) => void;
 }
 
-// ── Scenes: the painted 2.5D world ───────────────────────────────────────────
+// ── Scenes: the pixel-art 2.5D world ─────────────────────────────────────────
+
+export type Facing = "down" | "left" | "right" | "up";
+export type AnimState = "idle" | "walk" | "work" | "talk" | "blocked";
+
+/** An animated pixel sprite sheet (grid per SPRITE_SPEC.md). */
+export interface SpriteSheet {
+  src: string; // "/sprites/elder.png"
+  frameW: number; // 48
+  frameH: number; // 48
+  /** Row index per facing. If `right` omitted, engine mirrors `left`. */
+  rows: Partial<Record<Facing, number>>;
+  cols: number;
+  idleFrame: number;
+  walkFrames: number[]; // looped at `fps`
+  workFrames?: number[];
+  fps: number; // retro frame-step feel (NOT smooth tween)
+  mirrorRightFromLeft?: boolean;
+}
+
+/** A polygon zone that lifts sprites standing inside it (e.g. raised plaza). */
+export interface ElevationZone {
+  id: string;
+  polygon: { x: number; y: number }[]; // world coords, closed
+  heightOffset: number; // px to lift sprite + shadow when inside
+}
+
+/** A glow the engine can rim-tint nearby sprites with (crystal, torch). */
+export interface LightSource {
+  id: string;
+  x: number;
+  y: number;
+  color: string;
+  radius: number;
+  flicker?: boolean;
+}
+
+/** One layer of a scene's art. Back-to-front; `ground` holds the sprites. */
+export interface SceneLayer {
+  src: string; // "/scenes/keep_bg.png"
+  z: "background" | "ground" | "occluder" | "light";
+  /** Occluders only: feet-Y above this render behind; below, in front. */
+  baseline?: number;
+  parallax?: number; // 1 = locked to ground; <1 = far drift
+}
 
 /**
  * A clickable character standing in a scene. Lives in scene (world) coordinates;
  * the camera/parallax maths place it on screen. `marker` drives the floating
- * quest indicator + colour.
+ * quest indicator + colour. `sprite` + `waypoints` drive the animated pixel
+ * character (Milestone B+); without them it falls back to the emoji disc.
  */
 export interface SceneHotspot {
   id: string;
@@ -118,6 +163,10 @@ export interface SceneHotspot {
   x: number; // world coords within the scene
   y: number;
   marker?: Urgency; // shows a floating ! / status pip when set
+  sprite?: SpriteSheet;
+  waypoints?: { x: number; y: number }[]; // ambient wander loop (Phase-1 mock)
+  baseScale?: number; // base scale before depth-scale clamp (default 1)
+  initialFacing?: Facing;
 }
 
 /**
@@ -145,7 +194,13 @@ export interface RealmScene {
   name: string;
   width: number; // scene is larger than the viewport → you pan around it
   height: number;
-  backdrop?: string; // /scenes/xyz.png when real art is dropped in
+  backdrop?: string; // /scenes/xyz.png when painted (legacy single-image) art is dropped in
+  /** Pixel-art layers (back-to-front, same dims, aligned). Preferred over `backdrop`. */
+  layers?: SceneLayer[];
+  elevationZones?: ElevationZone[];
+  lights?: LightSource[];
+  /** Depth-scale clamp: sprites shrink toward `min` (far/up), grow to `max` (near/down). */
+  depthScale?: { min: number; max: number };
   regions: SceneRegion[];
   hotspots: SceneHotspot[];
 }

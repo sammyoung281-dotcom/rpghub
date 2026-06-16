@@ -32,6 +32,22 @@ art is single-angle).
 > painted feel. So scenes are images you generate/commission; the engine brings
 > them to life.
 
+## Pixel-art pipeline (visual upgrade, in progress)
+
+The world is moving to **16-bit pixel art**. See `PIXEL_WORLD_PROMPT.md` + `SPRITE_SPEC.md`.
+
+- **Crisp scaling:** all scene/sprite layers render with `image-rendering: pixelated`
+  (`.pixel-canvas` / `.pixel-img` in `src/scene/scene.css`). No blur when the camera zooms.
+- **Virtual base resolution:** the placeholder draws the realm at scene-size ÷ 10
+  (e.g. 4800×3000 → 480×300) and scales up crisp. Owner-supplied scene PNGs are
+  authored at 480×270 per scene (see SPRITE_SPEC §4).
+- **Scene layers** (data-driven, in `scenes.ts` `layers[]`): drop PNGs into
+  `public/scenes/<id>_<layer>.png` — `_bg` (background, parallax <1), `_ground`
+  (walkable midground), `_occ*` (foreground occluders, with a `baseline`), `_light`
+  (additive). Until art is dropped, a procedural `PixelPlaceholder` stands in.
+- **Sprites:** drop `public/sprites/<characterId>.png` (48×48 cells, rows =
+  down/left/right/up). Bound to a hotspot via its `sprite` field (Milestone B+).
+
 ## Adding painted scenes
 
 1. Generate/commission a painted backdrop image (see `SCENE_ART_SPEC.md` for size
