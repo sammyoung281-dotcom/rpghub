@@ -1,0 +1,94 @@
+.nyn-scroll {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(620px, 94vw);
+  z-index: 30;
+  background: linear-gradient(180deg, #f0e3c2 0%, #e1cfa3 100%);
+  border: 3px solid #9a9a9a;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  color: #3a2a18;
+  padding: 10px 14px 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* when something genuinely needs the Chairman, the scroll glows red */
+.nyn-scroll.active {
+  border-color: #c0392b;
+  box-shadow: 0 8px 26px rgba(192, 57, 43, 0.5), 0 0 0 2px rgba(192, 57, 43, 0.25);
+  animation: nyn-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes nyn-pulse {
+  0%, 100% { box-shadow: 0 8px 26px rgba(192, 57, 43, 0.45), 0 0 0 2px rgba(192, 57, 43, 0.2); }
+  50% { box-shadow: 0 10px 30px rgba(192, 57, 43, 0.7), 0 0 0 4px rgba(192, 57, 43, 0.3); }
+}
+
+.nyn-ribbon {
+  position: absolute;
+  top: -12px;
+  left: 18px;
+  background: #8c2b27;
+  color: #f4e9cf;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+}
+
+.nyn-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.nyn-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.nyn-title {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.nyn-detail {
+  font-size: 14px;
+  opacity: 0.78;
+  margin-top: 2px;
+}
+
+.nyn-act {
+  flex: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 800;
+  font-family: inherit;
+  color: #fff;
+  background: #c0392b;
+  border: 2px solid #7d241c;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.08s ease, filter 0.12s ease;
+}
+
+.nyn-act:hover { filter: brightness(1.08); }
+.nyn-act:active { transform: translateY(1px) scale(0.99); }
+
+.nyn-calm .nyn-title { font-weight: 700; opacity: 0.85; }
+
+.nyn-more {
+  margin-top: 8px;
+  text-align: right;
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.7;
+}

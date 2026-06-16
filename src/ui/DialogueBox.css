@@ -1,0 +1,139 @@
+.dlg-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 70px;
+  background: rgba(10, 7, 4, 0.35);
+  z-index: 40;
+  animation: dlg-fade 0.15s ease-out;
+}
+
+@keyframes dlg-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dlg-parchment {
+  width: min(640px, 92vw);
+  background: linear-gradient(180deg, #efe2c0 0%, #e3d2a8 100%);
+  color: #3a2a18;
+  border: 3px solid #8c2b27;
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), inset 0 0 24px rgba(150, 110, 50, 0.25);
+  padding: 18px 20px 16px;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  animation: dlg-rise 0.18s ease-out;
+}
+
+@keyframes dlg-rise {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.dlg-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 2px solid rgba(140, 43, 39, 0.35);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.dlg-portrait {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  flex: none;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.dlg-name {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.dlg-title {
+  font-size: 13px;
+  font-style: italic;
+  opacity: 0.72;
+}
+
+.dlg-body {
+  min-height: 64px;
+}
+
+.dlg-chunk {
+  font-size: 18px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  animation: dlg-fade 0.2s ease-out;
+}
+
+.dlg-progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.dlg-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(58, 42, 24, 0.25);
+}
+
+.dlg-pip.on {
+  background: #8c2b27;
+}
+
+.dlg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.dlg-btn {
+  flex: 1 1 auto;
+  min-width: 140px;
+  padding: 14px 18px;
+  font-size: 17px;
+  font-weight: 700;
+  font-family: inherit;
+  border-radius: 10px;
+  border: 2px solid #3a2a18;
+  cursor: pointer;
+  transition: transform 0.08s ease, filter 0.12s ease;
+}
+
+.dlg-btn:hover {
+  filter: brightness(1.06);
+}
+
+.dlg-btn:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.dlg-btn.accept {
+  background: #4f8a3d;
+  color: #f4ffe9;
+  border-color: #2f5a24;
+}
+
+.dlg-btn.decline {
+  background: #efe2c0;
+  color: #8c2b27;
+  border-color: #8c2b27;
+}
+
+.dlg-btn.neutral {
+  background: #c9a24b;
+  color: #2a1d0c;
+  border-color: #8a6d2c;
+}
