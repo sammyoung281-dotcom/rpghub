@@ -88,7 +88,22 @@ _Written at end of Phase 1 (all 5 milestones complete). Read this before resumin
 - **The RPG dev server runs on `localhost:5199`** (`PORT=5199 npm run dev`), not the default 5173.
 - **Do NOT kill `ruby .claude/serve.rb` on :8123** — that's Sam's *Meta Back End Course* static file server, unrelated to this project. I killed it once by mistake; restored it. Investigate unknown localhost processes before killing.
 
+## Build journal — Pixel-art upgrade (Milestones A–C done; D needs art)
+_Visual upgrade after Phase 1: retire the painted/SVG placeholder for 16-bit pixel art + animated sprites. Briefs: `PIXEL_WORLD_PROMPT.md`, `SPRITE_SPEC.md`, `SCENE_DATA_SHAPE.ts`._
+
+**This is the 4th visual direction** (Phaser → R3F → painted 2.5D → pixel art). The pattern holds: each pivot only touched `src/scene/`; the store / dialogue / journal / Council / AgentEngine seam never moved. Keep the rendering layer thin and swappable.
+
+**Done:**
+- **A — pixel foundation:** `image-rendering: pixelated` everywhere (`.pixel-canvas`/`.pixel-img`); virtual resolution = scene ÷ PX. `PixelPlaceholder` draws the realm at low-res, scaled up crisp. `scene.layers[]` (owner PNGs) render if present, else placeholder.
+- **B — sprites:** `Sprite.tsx` — animated character, waypoint wander, 4-dir facing, retro frame-step. Marker/ring/name/click intact.
+- **C — depth:** `depth.ts` + Sprite — z-index = baseline Y (feet − elevation) y-sorts sprites against occluder layers (walk behind/in front); elevation lift; depth-scale; light rim glow. `SceneStage` = behind-layers / depth-container / light-layers.
+
+**Pixel-specific lessons (don't relearn):**
+- **Match the pixel grid:** ground virtual-pixel size MUST equal the sprite's (`PX = Sprite DRAW = 4` world-px/pixel) or ground blocks dwarf the character. First pass had PX=10 vs sprite 4 — looked broken.
+- **The zoom-out void recurs with every backdrop.** Fix (again): fill the foreground edge-to-edge AND set `.scene-viewport` background to the same base colour so the scene rectangle blends. (Pixel version: flat grass + matching bg, no vignette circle.)
+- **Per-instance `<canvas>` painted invisibly** (timing/StrictMode-ish). Lesson: **prefer declarative SVG/DOM over imperative canvas for per-element visuals that must reliably paint.** The placeholder sprite is now inline SVG.
+- **Screen Recording WORKS now** (after Sam restarted Claude) → I can self-screenshot via computer-use (read tier: see, can't click). `open_application "Safari"` brings the app window forward. Preview MCP still broken; reloads rely on Vite HMR. Temporal effects (walk-behind) need a live watch, not a still.
+
 ## Parked tasks (persist here — task chips don't survive an app restart)
-1. **Painted art swap.** Generate a painted `realm.png` per `SCENE_ART_SPEC.md` → save to `public/scenes/realm.png` → set `backdrop:` in `src/data/scenes.ts` → nudge hotspot `x,y` to match the art. (Was spawn_task chip `task_6a0ebcd3` "Enrich placeholder scene backdrop"; fallback option: make the procedural placeholder prettier.)
+1. **★ Milestone D — assemble a real pixel scene (Sam is generating the art).** When art lands in `public/sprites/` + `public/scenes/` per `SPRITE_SPEC.md`: add `layers[]` (`_bg`/`_ground`/`_occ*` with `baseline`/`_light`) + per-character `sprite` fields to `src/data/scenes.ts`, then tune coords (`x,y`, occluder `baseline`, `elevationZones`, `lights`, `labelOffset`) by screenshot. Engine is ready — this is wiring + tuning, not new engine code. One set (e.g. the Keep + `elder.png`) is enough to start.
 2. **Phase 2 — real agents.** Swap `MockAgentEngine` → a Claude-backed engine (one line in `src/agent/index.ts`). **Do not start until Sam says.**
-3. **Revive live preview** (optional, for less-blind visual tuning): after restarting Claude + granting Screen Recording, the preview panel / computer-use screenshots should work.
