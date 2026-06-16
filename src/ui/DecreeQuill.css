@@ -1,0 +1,70 @@
+.dec-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 46;
+  background: rgba(10, 7, 4, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: dec-fade 0.15s ease-out;
+}
+@keyframes dec-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.dec-panel {
+  width: min(560px, 94vw);
+  background: linear-gradient(180deg, #efe2c0, #e3d2a8);
+  color: #3a2a18;
+  border: 3px solid #6b4a2b;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  padding: 16px 20px 18px;
+  font-family: "Trebuchet MS", sans-serif;
+  animation: dec-rise 0.18s ease-out;
+}
+@keyframes dec-rise { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.dec-head {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 2px solid rgba(107, 74, 43, 0.35);
+  padding-bottom: 8px; margin-bottom: 12px;
+}
+.dec-head h2 { margin: 0; font-size: 22px; }
+.dec-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #6b4a2b; }
+
+.dec-label { display: block; font-size: 13px; font-weight: 700; margin: 8px 0 6px; opacity: 0.8; }
+
+.dec-who { display: flex; flex-wrap: wrap; gap: 6px; }
+.dec-chip {
+  font: 600 13px "Trebuchet MS", sans-serif;
+  padding: 6px 10px; border-radius: 16px;
+  border: 2px solid #b89a6a; background: #f4ecd4; color: #3a2a18; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.dec-chip em { font-style: normal; opacity: 0.7; }
+.dec-chip.on { background: #6b4a2b; color: #f4e9cf; border-color: #6b4a2b; }
+
+.dec-input, .dec-brief {
+  width: 100%;
+  font: 15px "Trebuchet MS", sans-serif;
+  padding: 10px 12px;
+  border: 2px solid #b89a6a;
+  border-radius: 8px;
+  background: #fbf6e6;
+  color: #3a2a18;
+  margin-bottom: 10px;
+  resize: vertical;
+}
+.dec-input:focus, .dec-brief:focus { outline: none; border-color: #6b4a2b; }
+
+.dec-go {
+  width: 100%;
+  font: 800 17px "Trebuchet MS", sans-serif;
+  padding: 13px;
+  border-radius: 10px;
+  border: 2px solid #2f5a24;
+  background: #4f8a3d;
+  color: #f4ffe9;
+  cursor: pointer;
+}
+.dec-go:disabled { opacity: 0.5; cursor: not-allowed; }
+.dec-go:not(:disabled):active { transform: translateY(1px); }

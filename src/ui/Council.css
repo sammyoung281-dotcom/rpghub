@@ -1,0 +1,91 @@
+.cnc-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  background: rgba(10, 7, 4, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cnc-fade 0.15s ease-out;
+}
+@keyframes cnc-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.cnc-panel {
+  width: min(720px, 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #efe2c0, #e3d2a8);
+  color: #3a2a18;
+  border: 3px solid #6b4a2b;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  padding: 16px 20px 14px;
+  font-family: "Trebuchet MS", sans-serif;
+  animation: cnc-rise 0.18s ease-out;
+}
+@keyframes cnc-rise { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.cnc-head {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 2px solid rgba(107, 74, 43, 0.35);
+  padding-bottom: 8px; margin-bottom: 10px;
+}
+.cnc-head h2 { margin: 0; font-size: 24px; }
+.cnc-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #6b4a2b; }
+
+.cnc-elder {
+  background: #f6efda;
+  border: 1px solid #cdb98a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.cnc-elder-top { display: flex; align-items: center; gap: 12px; }
+.cnc-portrait { font-size: 34px; }
+.cnc-elder-name { font-size: 18px; font-weight: 800; }
+.cnc-elder-title { font-size: 12px; font-style: italic; opacity: 0.7; }
+.cnc-tally { margin-left: auto; display: flex; gap: 10px; font-weight: 800; font-size: 15px; white-space: nowrap; }
+.cnc-tally.small { font-size: 12px; gap: 7px; font-weight: 700; }
+.cnc-words { font-size: 15px; line-height: 1.45; margin: 8px 0 0; }
+.cnc-words.small { font-size: 13px; font-style: italic; opacity: 0.85; margin: 4px 0 6px; }
+
+.cnc-guilds { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+
+.cnc-guild {
+  background: #f6efda;
+  border: 1px solid #cdb98a;
+  border-left: 5px solid #999;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.cnc-guild-head { display: flex; align-items: center; justify-content: space-between; }
+.cnc-guild-name { font-weight: 800; font-size: 15px; }
+
+.cnc-member {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 4px 0; border-top: 1px dashed rgba(107, 74, 43, 0.25);
+}
+.cnc-member-name { font-size: 13px; font-weight: 700; display: flex; flex-direction: column; }
+.cnc-member-name em { font-weight: 400; font-style: italic; opacity: 0.65; font-size: 11px; }
+
+.cnc-auth { display: flex; gap: 4px; flex: none; }
+.cnc-auth-btn {
+  font: 600 11px "Trebuchet MS", sans-serif;
+  padding: 4px 8px; border-radius: 14px;
+  border: 1.5px solid #b89a6a; background: #efe6cd; color: #6b4a2b; cursor: pointer;
+}
+.cnc-auth-btn.on { background: #6b4a2b; color: #f4e9cf; border-color: #6b4a2b; }
+
+.cnc-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px; padding-top: 10px; border-top: 2px solid rgba(107, 74, 43, 0.35);
+}
+.cnc-autosave { font-size: 12px; font-style: italic; color: #4f8a3d; font-weight: 700; }
+.cnc-saveload { display: flex; gap: 8px; }
+.cnc-btn {
+  font: 700 13px "Trebuchet MS", sans-serif;
+  padding: 7px 12px; border-radius: 8px;
+  border: 2px solid #6b4a2b; background: #c9a24b; color: #2a1d0c; cursor: pointer;
+}
+.cnc-btn:active { transform: translateY(1px); }

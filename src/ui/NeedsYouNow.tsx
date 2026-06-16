@@ -1,16 +1,43 @@
+import { useMemo } from "react";
 import { useRealmStore } from "../store/useRealmStore";
+import { getCharacter } from "../data/characters";
+import { SCENES, STARTING_SCENE } from "../data/scenes";
+import { summonCharacter } from "../scene/interactions";
 import "./NeedsYouNow.css";
+
+interface Need {
+  ownerId: string;
+  title: string;
+  detail: string;
+}
 
 /**
  * The royal proclamation scroll. ALWAYS visible (ADHD rule #1).
  * Shows the single most urgent thing waiting on the Chairman — one action, big.
- * If more are queued, a small tally hints at the backlog without cluttering.
+ * Needs are DERIVED from quest state: pending proposals + blocked quests. No
+ * separate stored list to keep in sync (and nothing unserialisable to persist).
  */
 export default function NeedsYouNow() {
-  const needs = useRealmStore((s) => s.needs);
-  const top = useRealmStore((s) => s.topNeed)();
+  const proposals = useRealmStore((s) => s.proposals);
+  const quests = useRealmStore((s) => s.quests);
 
+  const needs = useMemo<Need[]>(() => {
+    const fromProposals = proposals.map((p) => {
+      const c = getCharacter(p.ownerId);
+      return { ownerId: p.ownerId, title: p.title, detail: `${c?.portrait ?? ""} ${c?.name ?? p.ownerId} awaits your decision` };
+    });
+    const fromBlocked = quests
+      .filter((q) => q.status === "blocked")
+      .map((q) => {
+        const c = getCharacter(q.ownerId);
+        return { ownerId: q.ownerId, title: q.title, detail: `${c?.portrait ?? ""} ${c?.name ?? q.ownerId} is blocked, awaiting you` };
+      });
+    return [...fromProposals, ...fromBlocked];
+  }, [proposals, quests]);
+
+  const top = needs[0] ?? null;
   const extra = needs.length - 1;
+  const scene = SCENES[STARTING_SCENE];
 
   return (
     <div className={"nyn-scroll" + (top ? " active" : "")}>
@@ -22,7 +49,7 @@ export default function NeedsYouNow() {
             <div className="nyn-title">🟥 {top.title}</div>
             <div className="nyn-detail">{top.detail}</div>
           </div>
-          <button className="nyn-act" onClick={top.onAct}>
+          <button className="nyn-act" onClick={() => summonCharacter(scene, top.ownerId)}>
             Attend ▸
           </button>
         </div>
@@ -35,9 +62,7 @@ export default function NeedsYouNow() {
         </div>
       )}
 
-      {extra > 0 && (
-        <div className="nyn-more">+{extra} more await your word</div>
-      )}
+      {extra > 0 && <div className="nyn-more">+{extra} more await your word</div>}
     </div>
   );
 }

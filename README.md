@@ -80,4 +80,6 @@ the scene layout in `Keep.tsx` / `Scenery.tsx` stays the same.
 2. ✅ Parchment dialogue box + "Needs You Now" scroll.
 3. ✅ Merchant's Guild: leader + `!` quest markers + accept/decline → Journal. *(+ AgentEngine seam, cast data)*
 4. ✅ One continuous realm map — Keep + 4 guild regions, faked-iso buildings, fast-travel.
-5. ⬜ Elder/guild reports, authority levels, decree-a-task, persistence, juice.
+5. ✅ Council (Elder + guild reports), authority levels, decree-a-task, autosave + export/import, completion juice.
+
+**Phase 1 complete.** Phase 2 = swap `MockAgentEngine` for a real Claude engine behind the same `AgentEngine` interface (see `src/agent/`).

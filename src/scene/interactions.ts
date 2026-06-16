@@ -32,7 +32,6 @@ export function summonCharacter(scene: RealmScene, characterId: string) {
       onResolve: (choice) => {
         if (choice === "accept") store.acceptProposal(proposal.id);
         else store.declineProposal(proposal.id);
-        store.removeNeed(`need-${characterId}`);
       },
     });
     return;
@@ -41,7 +40,7 @@ export function summonCharacter(scene: RealmScene, characterId: string) {
   // no pending quest — a scripted greeting, or a generated one from persona
   const base = MOCK_DIALOGUES[characterId];
   if (base) {
-    store.openDialogue({ ...base, onResolve: () => store.removeNeed(`need-${characterId}`) });
+    store.openDialogue({ ...base });
     return;
   }
   const char = getCharacter(characterId);
