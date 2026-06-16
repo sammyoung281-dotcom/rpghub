@@ -61,3 +61,34 @@ Character generates a quest → `!` floats over their head → click → parchme
 
 ## Out of scope (Phase 1)
 Real Claude API execution, external integrations (email/Slack/app stores/job tools), multi-device sync, auth. Leave clean seams; don't build.
+
+---
+
+## Build journal — Phase 1 retrospective & feedback analysis
+_Written at end of Phase 1 (all 5 milestones complete). Read this before resuming so you don't repeat the detours._
+
+**How it went:** Built in 5 milestones, showing a running screen at each (this cadence worked — keep it). Phase 1 is feature-complete: persistent, clickable world with mocked agents behind the `AgentEngine` seam.
+
+**Aesthetic pivoted twice — both Sam-driven, both before much code, so cheap:**
+1. Phaser 2D top-down (Steps 1–2) → 2. react-three-fiber 3D god-game → 3. **painted 2.5D god-view, no avatar** (current), based on a reference screenshot. R3F and Phaser fully retired. The React UI overlays + Zustand store survived every pivot untouched — proof that keeping the engine layer thin and the UI/state engine-agnostic paid off.
+
+**The camera was the hardest part — took 3 rounds.** Final working model (`src/scene/useCamera.ts`): contain-based min-zoom (whole realm + atmosphere frame) + ~130px pan overscan + a **single bleeding foreground layer**. Key lesson: **multi-layer parallax with mismatched layer sizes creates edge artifacts at zoom-out** — at full zoom-out the far/near layers drift apart and their edges float as junk. The fix was to collapse to one ground layer that bleeds well past the map (overflow:visible) and fades to dark forest. Don't reintroduce separate parallax layers for the placeholder.
+
+**Honest constraint established & accepted by Sam:** Claude cannot author painterly art, and real-time 3D can't fake the painted look → scenes are **owner-supplied PNGs**; the engine just renders them. The placeholder is deliberately abstract, not painterly. Stating this upfront (rather than faking depth) is exactly what Sam wanted.
+
+**What worked well — keep doing:**
+- **Screenshot-paste feedback loop.** Sam pastes screenshots; I adjust. This was the ONLY working visual-verification channel (see gotchas). Lean on it; ask for a screenshot rather than assuming a visual is right.
+- `tsc -b` + `vite build` green as the gate before reporting "done."
+- `AskUserQuestion` for big forks (engine, camera angle, art fidelity, world layout) before building. Sam engages and makes real calls — surface the honest trade-offs in the options.
+- Commit in logical chunks (one per milestone/fix).
+
+**Environment gotchas (cost real time — avoid):**
+- **The preview panel (`preview_start`) is broken on this machine.** It's anchored to the primary working dir `~/Desktop/Meta Back End Course/Visual Studio Files`, which is macOS-TCC-protected, and it tries to launch that dir's `serve.rb`. Reviving it needs a **Claude app restart** (so it has Desktop permission).
+- **computer-use screenshots need Screen Recording granted to Claude AND an app restart to take effect** (macOS checks the grant once at launch).
+- **The RPG dev server runs on `localhost:5199`** (`PORT=5199 npm run dev`), not the default 5173.
+- **Do NOT kill `ruby .claude/serve.rb` on :8123** — that's Sam's *Meta Back End Course* static file server, unrelated to this project. I killed it once by mistake; restored it. Investigate unknown localhost processes before killing.
+
+## Parked tasks (persist here — task chips don't survive an app restart)
+1. **Painted art swap.** Generate a painted `realm.png` per `SCENE_ART_SPEC.md` → save to `public/scenes/realm.png` → set `backdrop:` in `src/data/scenes.ts` → nudge hotspot `x,y` to match the art. (Was spawn_task chip `task_6a0ebcd3` "Enrich placeholder scene backdrop"; fallback option: make the procedural placeholder prettier.)
+2. **Phase 2 — real agents.** Swap `MockAgentEngine` → a Claude-backed engine (one line in `src/agent/index.ts`). **Do not start until Sam says.**
+3. **Revive live preview** (optional, for less-blind visual tuning): after restarting Claude + granting Screen Recording, the preview panel / computer-use screenshots should work.
