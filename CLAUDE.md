@@ -13,12 +13,15 @@ Sam — runs change/ops at a fintech, building side hustles on the side. **ADHD.
 - **Phase 2 (later):** real Claude-powered agents + tool integrations, wired in behind the existing `AgentEngine` interface. Don't build this until told.
 
 ## Tech stack
-Vite + React + TypeScript · **Phaser 3** for the world/movement/sprites · React for UI overlays (dialogue, journal, scrolls) · **Zustand** as single source of truth · localStorage/JSON persistence (with file export/import). No backend, no auth. Runs on `npm run dev`.
+Vite + React + TypeScript · **react-three-fiber + three.js + drei** for the 3D world/movement/models · React for UI overlays (dialogue, journal, scrolls) · **Zustand** as single source of truth · localStorage/JSON persistence (with file export/import). No backend, no auth. Runs on `npm run dev`.
+
+## Visual style (decided)
+Late-90s **top-down god-game** in 3D (think **Black & White / Populous: The Beginning**), NOT 2D pixel art. Tilted 3/4 camera (~52°) that trails the Sovereign and orbits with Q/E. Cosy "Black & White" mood — warm sun, soft shadows, rounded low-poly buildings, lush grass. "Higher bit-rate" = 90s low-poly silhouettes with modern rendering (soft shadows, fog, AO-ish lighting). All geometry currently procedural (no asset files) so it runs instantly; swap in CC0 low-poly GLTF (Kenney.nl / Quaternius) later.
 
 ## Architecture rules
 - **Data-driven:** characters, guilds, quests, authority levels defined in typed config/JSON. Adding a guild/character = editing data, not code.
 - **Agent brain behind a clean seam:** `AgentEngine` interface with `proposeQuest()`, `askQuestion()`, `doWork()`, `report()`. Phase 1 = mock implementation; Phase 2 swaps in real Claude calls behind the same interface. Keep this seam obvious and isolated.
-- Zustand store is the source of truth; Phaser and React both read/write through it via an event bus.
+- Zustand store is the source of truth; the 3D world and React overlays both read/write through it.
 - Authority model and reporting chain must be real data structures now (even if only cosmetic in Phase 1) so Phase 2 can enforce them.
 
 ## The world (theme = medieval fantasy, maps to real function)

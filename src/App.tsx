@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import PhaserGame from "./game/PhaserGame";
+import World from "./game/World";
 import DialogueBox from "./ui/DialogueBox";
 import NeedsYouNow from "./ui/NeedsYouNow";
 import { useRealmStore } from "./store/useRealmStore";
@@ -44,10 +44,10 @@ export default function App() {
 
   return (
     <>
-      <PhaserGame />
+      <World />
       <NeedsYouNow />
       <DialogueBox />
-      <div className="hint">Move with WASD / Arrow keys — walk the Keep</div>
+      <div className="hint">WASD / Arrows to walk · Q / E to turn the view</div>
     </>
   );
 }

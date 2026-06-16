@@ -14,23 +14,32 @@ npm run dev        # → http://localhost:5173  (or set PORT=xxxx)
 ## Tech
 
 - **Vite + React + TypeScript** — UI overlays (dialogue, journal, scrolls) live in React.
-- **Phaser 3** — the world, movement, sprites, tilemaps. Owns the canvas; React sits on top.
-- **Zustand** — single source of truth (added in later steps).
+- **react-three-fiber + three.js + drei** — the 3D world, movement, models. Owns the canvas; React UI sits on top.
+- **Zustand** — single source of truth.
 - **localStorage / JSON** — persistence (added in later steps).
+
+## Visual style
+
+Late-90s top-down **god-game in 3D** (Black & White / Populous), not 2D pixels.
+Tilted 3/4 camera (~52°) trails the Sovereign; **Q/E orbit the view**. Cosy mood:
+warm sun, soft shadows, rounded low-poly buildings, lush grass + fog.
 
 ## Architecture (current + planned)
 
 ```
 src/
-  game/            Phaser world
-    scenes/        WorldScene = the rooms
-    PhaserGame.tsx React wrapper that mounts/destroys the Phaser.Game
-    bridge/        event bus React <-> Phaser (later step)
+  game/            3D world (react-three-fiber)
+    World.tsx      the <Canvas>, lights, sky, soft shadows — composes the scene
+    Hero.tsx       the Sovereign avatar + camera-follow + Q/E orbit
+    Keep.tsx       the High Keep structures (towers, walls, throne)
+    Scenery.tsx    grassland + ring of trees
+    useKeys.ts     keyboard-held-state hook
   ui/              React overlays: DialogueBox, NeedsYouNow, Journal, DecreeQuill, Reports (later steps)
   data/            content lives here — guilds, characters, quests (data-driven)
-  store/           Zustand store (later step)
+  store/           Zustand store (single source of truth)
   agent/           AgentEngine seam — see below
-  App.tsx          composes Phaser + React overlays
+  types.ts         core domain types + urgency colour system
+  App.tsx          composes the 3D world + React overlays
 ```
 
 ### The agent seam (where Phase 2 plugs in)
@@ -42,15 +51,16 @@ real Claude-backed implementation behind the *same* interface — no rewrite of 
 
 ## Art
 
-All visuals are currently **generated procedurally** in `WorldScene.makeTextures()`
-(colored tiles + a drawn hero) so the app runs with zero external assets.
-To upgrade: drop free/CC0 top-down art (e.g. Kenney.nl) into `public/`, load it in
-`preload()`, and point the sprites/tiles at the loaded texture keys.
+All visuals are currently **procedural low-poly geometry** (boxes, cylinders, cones
+in `game/*.tsx`) so the app runs with zero external assets.
+To upgrade: drop free/CC0 low-poly GLTF models (e.g. Kenney.nl, Quaternius) into
+`public/`, load them with drei's `useGLTF`, and replace the procedural pieces —
+the scene layout in `Keep.tsx` / `Scenery.tsx` stays the same.
 
 ## Build milestones (see BUILD_PROMPT.md §7)
 
-1. ✅ Scaffold + a single walkable room with a controllable character + camera follow.
-2. ⬜ Parchment dialogue box + "Needs You Now" scroll.
+1. ✅ Scaffold + a walkable world with a controllable character + camera follow. *(now 3D god-game)*
+2. ✅ Parchment dialogue box + "Needs You Now" scroll.
 3. ⬜ Merchant's Guild: leader + `!` quest markers + accept/decline → Journal.
 4. ⬜ Multiple connected spaces (High Keep + guilds) with travel.
 5. ⬜ Elder/guild reports, authority levels, decree-a-task, persistence, juice.

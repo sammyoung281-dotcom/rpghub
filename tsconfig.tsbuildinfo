@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/game/phasergame.tsx","./src/game/scenes/worldscene.ts","./src/store/userealmstore.ts","./src/ui/dialoguebox.tsx","./src/ui/needsyounow.tsx"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/game/hero.tsx","./src/game/keep.tsx","./src/game/scenery.tsx","./src/game/world.tsx","./src/game/usekeys.ts","./src/store/userealmstore.ts","./src/ui/dialoguebox.tsx","./src/ui/needsyounow.tsx"],"version":"5.9.3"}
