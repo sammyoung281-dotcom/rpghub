@@ -4,18 +4,19 @@ import { URGENCY_COLOR } from "../types";
 
 /**
  * An animated pixel-sprite character. Renders from a real sprite sheet
- * (`spot.sprite`) when supplied, else a procedural blocky placeholder. Walks an
- * ambient waypoint loop (Phase-1 mock — the "doing their job" wander), picking a
- * 4-direction facing from its velocity and frame-stepping the walk at a retro
- * fps while the position tweens smoothly. Keeps the `!` marker, status ring and
- * click-to-dialogue intact, anchored above its head.
+ * (`spot.sprite`) when supplied, else a procedural blocky SVG placeholder (SVG
+ * paints declaratively — no canvas timing issues). Walks an ambient waypoint
+ * loop (Phase-1 mock), picks a 4-direction facing from velocity, and frame-steps
+ * the walk at a retro fps while position tweens smoothly. The `!` marker, status
+ * ring and click-to-dialogue stay intact above the head; the name plate +
+ * marker honour an optional per-character `labelOffset`.
  *
  * Depth-sorting / elevation / occluders / light tint arrive in Milestone C.
  */
 
-const DRAW = 4; // integer up-scale of the 48px frame → 192px tall in world space
+const DRAW = 4; // up-scale of the 48px sheet frame → 192px tall in world space
 const SPEED = 95; // world px/sec wander
-const PAUSE = 0.7; // sec to dwell at each waypoint
+const PAUSE = 0.7; // sec dwell at each waypoint
 
 export default function Sprite({
   spot,
@@ -27,7 +28,7 @@ export default function Sprite({
   onClick: () => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const figRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,7 +37,6 @@ export default function Sprite({
     const fps = sheet?.fps ?? 8;
     const path = spot.waypoints && spot.waypoints.length > 1 ? spot.waypoints : null;
 
-    // state
     let x = spot.x;
     let y = spot.y;
     let target = 1;
@@ -44,23 +44,11 @@ export default function Sprite({
     let facing: Facing = spot.initialFacing ?? "down";
     let moving = false;
     let t = 0;
-    let lastDrawn = "";
+    let lastClass = "";
 
-    // preload real sheet
-    let sheetImg: HTMLImageElement | null = null;
-    if (sheet) {
-      sheetImg = new Image();
-      sheetImg.src = sheet.src;
-    }
-
-    const draw = () => {
-      const frameInWalk = moving ? Math.floor(t * fps) % 4 : -1;
-      const key = `${facing}|${frameInWalk}`;
-      if (key === lastDrawn) return;
-      lastDrawn = key;
-
-      if (sheet && imgRef.current && sheetImg) {
-        // real sheet: pick row by facing, column by frame
+    const apply = () => {
+      const frame = moving ? Math.floor(t * fps) % 4 : -1;
+      if (sheet && imgRef.current) {
         let row = sheet.rows[facing];
         let flip = false;
         if (row === undefined && facing === "right" && sheet.rows.left !== undefined) {
@@ -68,14 +56,16 @@ export default function Sprite({
           flip = true;
         }
         row = row ?? 0;
-        const col = moving ? sheet.walkFrames[frameInWalk % sheet.walkFrames.length] : sheet.idleFrame;
+        const col = moving ? sheet.walkFrames[frame % sheet.walkFrames.length] : sheet.idleFrame;
         const el = imgRef.current;
-        el.style.backgroundImage = `url(${sheet.src})`;
-        el.style.backgroundSize = `${sheet.cols * sheet.frameW * DRAW}px ${4 * sheet.frameH * DRAW}px`;
         el.style.backgroundPosition = `-${col * sheet.frameW * DRAW}px -${row * sheet.frameH * DRAW}px`;
         el.style.transform = `translate(-50%, -100%) scaleX(${flip ? -1 : 1})`;
-      } else if (canvasRef.current) {
-        drawPlaceholder(canvasRef.current, facing, frameInWalk, spot.accent);
+      } else if (figRef.current) {
+        const cls = `sprite-fig ph face-${facing}${moving ? " walking" : ""}`;
+        if (cls !== lastClass) {
+          figRef.current.className = cls;
+          lastClass = cls;
+        }
       }
     };
 
@@ -85,12 +75,9 @@ export default function Sprite({
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       t += dt;
-
       if (path) {
-        const tx = path[target].x;
-        const ty = path[target].y;
-        const dx = tx - x;
-        const dy = ty - y;
+        const dx = path[target].x - x;
+        const dy = path[target].y - y;
         const dist = Math.hypot(dx, dy);
         if (dist < 4) {
           moving = false;
@@ -107,113 +94,74 @@ export default function Sprite({
           facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
         }
       }
-
       root.style.transform = `translate(${x}px, ${y}px)`;
-      draw();
+      apply();
       raf = requestAnimationFrame(tick);
     };
-    draw();
+    apply();
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [spot]);
 
   const needs = marker === "needs_me";
   const figW = 48 * DRAW;
+  const off = spot.labelOffset ?? { x: 0, y: 0 };
+  const a = spot.accent;
 
   return (
     <div ref={rootRef} className="sprite-root" style={{ transform: `translate(${spot.x}px, ${spot.y}px)` }}>
-      {/* contact shadow */}
-      <div className="sprite-shadow" style={{ width: figW * 0.42, height: figW * 0.16 }} />
+      <div className="sprite-shadow" style={{ width: figW * 0.4, height: figW * 0.15 }} />
 
-      {/* the figure (clickable) */}
       {spot.sprite ? (
         <div
           ref={imgRef}
           className="sprite-fig pixel-img"
-          style={{ width: 48 * DRAW, height: 48 * DRAW }}
+          style={{
+            width: 48 * DRAW,
+            height: 48 * DRAW,
+            backgroundImage: `url(${spot.sprite.src})`,
+            backgroundSize: `${spot.sprite.cols * spot.sprite.frameW * DRAW}px ${4 * spot.sprite.frameH * DRAW}px`,
+          }}
           onClick={(e) => { e.stopPropagation(); onClick(); }}
         />
       ) : (
-        <canvas
-          ref={canvasRef}
-          className="sprite-fig pixel-canvas"
-          width={48}
-          height={48}
-          style={{ width: 48 * DRAW, height: 48 * DRAW }}
+        <div
+          ref={figRef}
+          className="sprite-fig ph face-down"
+          style={{ width: 96, height: 168 }}
           onClick={(e) => { e.stopPropagation(); onClick(); }}
-        />
+        >
+          <div className="ph-flip">
+            <svg className="ph-svg" viewBox="0 0 16 28" preserveAspectRatio="xMidYMax meet">
+              <rect className="ph-leg" x="5" y="23" width="2" height="5" fill="#2c2b46" />
+              <rect className="ph-leg ph-leg-r" x="9" y="23" width="2" height="5" fill="#2c2b46" />
+              <rect x="3" y="21" width="10" height="3" fill={a} />
+              <rect x="4" y="13" width="8" height="11" fill={a} />
+              <rect x="4" y="13" width="8" height="3" fill="rgba(0,0,0,0.2)" />
+              <rect x="5" y="5" width="6" height="8" fill="#e8c79a" />
+              <rect x="4" y="3" width="2" height="3" fill="#d6b187" />
+              <rect x="10" y="3" width="2" height="3" fill="#d6b187" />
+              <g className="ph-eyes">
+                <rect x="6" y="8" width="1" height="2" fill="#1b1a2e" />
+                <rect x="9" y="8" width="1" height="2" fill="#1b1a2e" />
+              </g>
+            </svg>
+          </div>
+        </div>
       )}
 
-      {/* status ring + name + quest marker, floating above the head */}
+      {marker && <span className="sprite-ring" style={{ borderColor: URGENCY_COLOR[marker] }} />}
+      <span className="sprite-name" style={{ top: -224 + off.y, marginLeft: off.x }}>
+        {spot.name}
+      </span>
       {marker && (
-        <span className="sprite-ring" style={{ borderColor: URGENCY_COLOR[marker] }} />
-      )}
-      <span className="sprite-name">{spot.name}</span>
-      {marker && (
-        <span className={"sprite-marker" + (needs ? " urgent" : "")} style={{ background: URGENCY_COLOR[marker] }}>
+        <span
+          className={"sprite-marker" + (needs ? " urgent" : "")}
+          style={{ background: URGENCY_COLOR[marker], top: -256 + off.y, marginLeft: off.x }}
+        >
           {needs ? "!" : ""}
         </span>
       )}
     </div>
   );
-}
-
-/** Draw a crude blocky stand-in person into a 48×48 canvas (placeholder only). */
-function drawPlaceholder(canvas: HTMLCanvasElement, facing: Facing, walkFrame: number, accent: string) {
-  const ctx = canvas.getContext("2d")!;
-  ctx.imageSmoothingEnabled = false;
-  ctx.clearRect(0, 0, 48, 48);
-  ctx.save();
-  if (facing === "left") {
-    ctx.translate(48, 0);
-    ctx.scale(-1, 1);
-  }
-  const step = walkFrame >= 0 ? walkFrame % 2 : -1;
-  const bob = step === 1 ? -1 : 0;
-
-  // legs (alternate when walking)
-  ctx.fillStyle = "#2c2b46";
-  if (step < 0) {
-    ctx.fillRect(19, 40, 4, 6);
-    ctx.fillRect(25, 40, 4, 6);
-  } else if (step === 0) {
-    ctx.fillRect(17, 40, 4, 6);
-    ctx.fillRect(27, 40, 4, 5);
-  } else {
-    ctx.fillRect(21, 40, 4, 5);
-    ctx.fillRect(25, 40, 4, 6);
-  }
-
-  // cloak/body (accent), wider at the base
-  ctx.fillStyle = accent;
-  ctx.fillRect(16, 24 + bob, 16, 18);
-  ctx.fillRect(14, 36 + bob, 20, 6);
-  // shoulder shade
-  ctx.fillStyle = shade(accent, -0.18);
-  ctx.fillRect(16, 24 + bob, 16, 4);
-
-  // head
-  ctx.fillStyle = "#e8c79a";
-  ctx.fillRect(18, 12 + bob, 12, 12);
-  // ears nub
-  ctx.fillStyle = shade("#e8c79a", -0.12);
-  ctx.fillRect(17, 10 + bob, 4, 4);
-  ctx.fillRect(27, 10 + bob, 4, 4);
-
-  // face (only when facing camera-ish)
-  if (facing === "down") {
-    ctx.fillStyle = "#1b1a2e";
-    ctx.fillRect(21, 17 + bob, 2, 2);
-    ctx.fillRect(26, 17 + bob, 2, 2);
-  } else if (facing !== "up") {
-    ctx.fillStyle = "#1b1a2e";
-    ctx.fillRect(26, 17 + bob, 2, 2);
-  }
-  ctx.restore();
-}
-
-function shade(hex: string, amt: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  const c = (v: number) => Math.round(Math.min(255, Math.max(0, v + amt * 255)));
-  return `rgb(${c((n >> 16) & 255)},${c((n >> 8) & 255)},${c(n & 255)})`;
 }

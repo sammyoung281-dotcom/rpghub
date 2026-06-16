@@ -2,9 +2,9 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  /* matches the meadow's dark-forest vignette edge, so the bleeding foreground
-     blends seamlessly into the backdrop with no visible seam. */
-  background: #243f22;
+  /* matches the pixel meadow's base grass so the scene rectangle blends into the
+     backdrop with no visible seam at full zoom-out. */
+  background: #357a4d;
   cursor: grab;
   user-select: none;
 }
@@ -116,6 +116,45 @@
 }
 .sprite-marker.urgent {
   animation: marker-bob 1s ease-in-out infinite;
+}
+
+/* ── procedural SVG placeholder figure ── */
+.ph-flip {
+  width: 100%;
+  height: 100%;
+}
+.sprite-fig.face-left .ph-flip {
+  transform: scaleX(-1);
+}
+.ph-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+}
+.sprite-fig.face-up .ph-eyes {
+  display: none;
+}
+.sprite-fig.walking .ph-svg {
+  animation: ph-bob 0.36s steps(2) infinite;
+}
+@keyframes ph-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.sprite-fig.walking .ph-leg {
+  animation: ph-leg-a 0.36s steps(2) infinite;
+}
+.sprite-fig.walking .ph-leg-r {
+  animation: ph-leg-b 0.36s steps(2) infinite;
+}
+@keyframes ph-leg-a {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes ph-leg-b {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(0); }
 }
 
 /* drifting atmosphere — sits above the scene, below the UI */

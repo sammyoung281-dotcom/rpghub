@@ -167,6 +167,8 @@ export interface SceneHotspot {
   waypoints?: { x: number; y: number }[]; // ambient wander loop (Phase-1 mock)
   baseScale?: number; // base scale before depth-scale clamp (default 1)
   initialFacing?: Facing;
+  /** Nudge the name plate + quest marker (world px) to taste. Default sits above the head. */
+  labelOffset?: { x: number; y: number };
 }
 
 /**
