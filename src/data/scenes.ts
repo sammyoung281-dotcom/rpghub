@@ -26,12 +26,21 @@ export const SCENES: Record<string, RealmScene> = {
       { id: "scholars", guildId: "scholars", name: "The Scholars' Tower", emoji: "📜", cx: 3300, cy: 2450, focusZoom: 1.0 },
     ],
     hotspots: [
-      { id: "hs-elder", characterId: "elder", name: "Maeve the Elder", emoji: "🦉", accent: "#7b5fa0", x: 2400, y: 1080 },
-      { id: "hs-brannock", characterId: "brannock", name: "Brannock Quillfeather", emoji: "🦊", accent: "#b8860b", x: 1010, y: 1880 },
-      { id: "hs-tasha", characterId: "tasha", name: "Tasha Coppernick", emoji: "🦝", accent: "#b8860b", x: 1300, y: 1930 },
-      { id: "hs-edmund", characterId: "edmund", name: "Magister Edmund Vell", emoji: "🦡", accent: "#4a6d8c", x: 3650, y: 1880 },
-      { id: "hs-wren", characterId: "wren", name: "Wren Hollowmoor", emoji: "🦔", accent: "#a85b3a", x: 1500, y: 2630 },
-      { id: "hs-lyra", characterId: "lyra", name: "Lyra Pageturner", emoji: "🦌", accent: "#6b8e4e", x: 3300, y: 2630 },
+      // `waypoints` = ambient wander loop (Phase-1 mock "doing their job"). Add a
+      // `sprite: { src: "/sprites/<id>.png", ... }` field once real art is dropped;
+      // until then each renders a procedural placeholder sprite.
+      { id: "hs-elder", characterId: "elder", name: "Maeve the Elder", emoji: "🦉", accent: "#7b5fa0", x: 2400, y: 1080,
+        waypoints: [{ x: 2400, y: 1080 }, { x: 2300, y: 1050 }, { x: 2500, y: 1050 }] },
+      { id: "hs-brannock", characterId: "brannock", name: "Brannock Quillfeather", emoji: "🦊", accent: "#b8860b", x: 1010, y: 1880,
+        waypoints: [{ x: 1010, y: 1880 }, { x: 1120, y: 1900 }, { x: 980, y: 1820 }] },
+      { id: "hs-tasha", characterId: "tasha", name: "Tasha Coppernick", emoji: "🦝", accent: "#b8860b", x: 1300, y: 1930,
+        waypoints: [{ x: 1300, y: 1930 }, { x: 1360, y: 1870 }, { x: 1240, y: 1900 }] },
+      { id: "hs-edmund", characterId: "edmund", name: "Magister Edmund Vell", emoji: "🦡", accent: "#4a6d8c", x: 3650, y: 1880,
+        waypoints: [{ x: 3650, y: 1880 }, { x: 3560, y: 1900 }, { x: 3720, y: 1840 }] },
+      { id: "hs-wren", characterId: "wren", name: "Wren Hollowmoor", emoji: "🦔", accent: "#a85b3a", x: 1500, y: 2630,
+        waypoints: [{ x: 1500, y: 2630 }, { x: 1420, y: 2600 }, { x: 1580, y: 2600 }] },
+      { id: "hs-lyra", characterId: "lyra", name: "Lyra Pageturner", emoji: "🦌", accent: "#6b8e4e", x: 3300, y: 2630,
+        waypoints: [{ x: 3300, y: 2630 }, { x: 3380, y: 2590 }, { x: 3240, y: 2600 }] },
     ],
   },
 };

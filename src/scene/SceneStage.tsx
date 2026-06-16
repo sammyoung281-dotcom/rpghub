@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRealmStore } from "../store/useRealmStore";
 import { SCENES, STARTING_SCENE } from "../data/scenes";
 import { useCamera } from "./useCamera";
-import Hotspot from "./Hotspot";
+import Sprite from "./Sprite";
 import Motes from "./Motes";
 import PixelPlaceholder from "./PixelPlaceholder";
 import { summonCharacter } from "./interactions";
@@ -97,7 +97,7 @@ export default function SceneStage() {
           style={{ width: scene.width, height: scene.height, transform: layerTransform(1) }}
         >
           {scene.hotspots.map((spot) => (
-            <Hotspot
+            <Sprite
               key={spot.id}
               spot={spot}
               marker={characterMarker(spot.characterId)}
