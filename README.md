@@ -47,6 +47,13 @@ The world is moving to **16-bit pixel art**. See `PIXEL_WORLD_PROMPT.md` + `SPRI
   (additive). Until art is dropped, a procedural `PixelPlaceholder` stands in.
 - **Sprites:** drop `public/sprites/<characterId>.png` (48×48 cells, rows =
   down/left/right/up). Bound to a hotspot via its `sprite` field (Milestone B+).
+- **Depth (Milestone C):** sprites + occluder layers share one container and are
+  y-sorted by `z-index = effective baseline Y` (feet − elevation), so a character
+  walks behind a prop with a higher baseline and in front of a lower one. Occluder
+  layers carry a `baseline`; `elevationZones` lift a sprite (and its shadow) onto
+  raised ground; `depthScale {min,max}` shrinks/grows sprites by depth; `lights`
+  add a coloured rim glow to nearby characters. Until occluder PNGs are dropped, a
+  few procedural demo trees in `SceneStage` prove the walk-behind.
 
 ## Adding painted scenes
 

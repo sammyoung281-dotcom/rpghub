@@ -15,9 +15,12 @@ interface RenderLayer {
 }
 
 /**
- * The painted 2.5D world. Renders the active scene as a stack of parallax
- * layers under a free god-camera (pan/zoom/glide via useCamera). Hotspots sit
- * on the ground plane (parallax 1) and open the dialogue system on click.
+ * The pixel 2.5D world. Renders, back-to-front:
+ *  1. behind layers (background + ground, or the procedural placeholder),
+ *  2. a DEPTH container (parallax 1) holding occluders + sprites, all y-sorted by
+ *     z-index = their baseline, so characters pass behind/in front of props,
+ *  3. light layers (additive) on top.
+ * Free god-camera (contain-zoom + pan overscan) via useCamera.
  */
 export default function SceneStage() {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -26,7 +29,6 @@ export default function SceneStage() {
   const scene = SCENES[STARTING_SCENE];
   const cameraTarget = useRealmStore((s) => s.cameraTarget);
   const clearCameraTarget = useRealmStore((s) => s.clearCameraTarget);
-  // subscribe to quest state so markers re-render when quests change
   useRealmStore((s) => s.proposals);
   useRealmStore((s) => s.quests);
   const characterMarker = useRealmStore((s) => s.characterMarker);
@@ -49,62 +51,76 @@ export default function SceneStage() {
     onFocusConsumed: clearCameraTarget,
   });
 
-  // parallax: ground (p=1) maps world→screen 1:1 with the camera; far layers
-  // move less, foreground more. The /zoom term keeps centring stable on zoom.
   const layerTransform = (parallax: number) => {
     const tx = vp.w / 2 / cam.zoom - cam.x * parallax;
     const ty = vp.h / 2 / cam.zoom - cam.y * parallax;
     return `translate(${tx}px, ${ty}px)`;
   };
 
-  // Pixel layers: real owner-supplied PNGs if present, else the procedural
-  // placeholder. All rendered crisp (image-rendering: pixelated, see scene.css).
-  const layers: RenderLayer[] = useMemo(() => {
-    if (scene.layers?.length) {
-      return scene.layers.map((l, i) => ({
-        key: `${l.z}-${i}`,
-        parallax: l.parallax ?? 1,
-        node: (
-          <img
-            className="pixel-img"
-            src={l.src}
-            alt=""
-            style={{ width: "100%", height: "100%" }}
-            draggable={false}
-          />
-        ),
-      }));
+  // split owner-supplied layers by role; fall back to the procedural placeholder
+  const { behind, occluders, lights } = useMemo(() => {
+    const L = scene.layers ?? [];
+    const behindL: RenderLayer[] = L.filter((l) => l.z === "background" || l.z === "ground").map((l, i) => ({
+      key: `b-${i}`,
+      parallax: l.parallax ?? 1,
+      node: <img className="pixel-img" src={l.src} alt="" style={{ width: "100%", height: "100%" }} draggable={false} />,
+    }));
+    if (behindL.length === 0) {
+      behindL.push({ key: "pixel-placeholder", parallax: 1, node: <PixelPlaceholder scene={scene} /> });
     }
-    return [{ key: "pixel-placeholder", parallax: 1, node: <PixelPlaceholder scene={scene} /> }];
+    return {
+      behind: behindL,
+      occluders: L.filter((l) => l.z === "occluder"),
+      lights: L.filter((l) => l.z === "light"),
+    };
   }, [scene]);
+
+  // Demo occluders so walk-behind is provable before real occluder PNGs land.
+  const demoTrees = scene.layers ? [] : DEMO_TREES;
 
   return (
     <div id="game-root" ref={viewportRef} className="scene-viewport">
       <div className="scene-stage" style={{ transform: `scale(${cam.zoom})` }}>
-        {layers.map((l) => (
-          <div
-            key={l.key}
-            className="scene-layer"
-            style={{ width: scene.width, height: scene.height, transform: layerTransform(l.parallax) }}
-          >
+        {behind.map((l) => (
+          <div key={l.key} className="scene-layer" style={{ width: scene.width, height: scene.height, transform: layerTransform(l.parallax) }}>
             {l.node}
           </div>
         ))}
 
-        {/* hotspots ride the ground plane (parallax 1) */}
-        <div
-          className="scene-layer hotspot-layer"
-          style={{ width: scene.width, height: scene.height, transform: layerTransform(1) }}
-        >
+        {/* depth container: occluders + sprites, y-sorted by z-index */}
+        <div className="scene-layer depth-layer" style={{ width: scene.width, height: scene.height, transform: layerTransform(1) }}>
+          {occluders.map((l, i) => (
+            <img
+              key={`occ-${i}`}
+              className="pixel-img occluder"
+              src={l.src}
+              alt=""
+              style={{ width: scene.width, height: scene.height, zIndex: Math.round(l.baseline ?? scene.height) }}
+              draggable={false}
+            />
+          ))}
+          {demoTrees.map((tr, i) => (
+            <DemoTree key={`tree-${i}`} x={tr.x} y={tr.y} />
+          ))}
           {scene.hotspots.map((spot) => (
             <Sprite
               key={spot.id}
               spot={spot}
               marker={characterMarker(spot.characterId)}
               onClick={() => summonCharacter(scene, spot.characterId)}
+              zones={scene.elevationZones}
+              lights={scene.lights}
+              depthScale={scene.depthScale}
+              sceneH={scene.height}
             />
           ))}
         </div>
+
+        {lights.map((l, i) => (
+          <div key={`light-${i}`} className="scene-layer light-layer" style={{ width: scene.width, height: scene.height, transform: layerTransform(l.parallax ?? 1) }}>
+            <img className="pixel-img" src={l.src} alt="" style={{ width: "100%", height: "100%" }} draggable={false} />
+          </div>
+        ))}
       </div>
 
       <Motes />
@@ -113,3 +129,29 @@ export default function SceneStage() {
     </div>
   );
 }
+
+/** Placeholder occluder: a tree whose trunk base sits at (x,y); canopy occludes
+ *  sprites with a higher baseline. z-index = trunk-base Y so it y-sorts. */
+function DemoTree({ x, y }: { x: number; y: number }) {
+  return (
+    <svg
+      className="demo-tree"
+      viewBox="0 0 60 90"
+      width={260}
+      height={390}
+      style={{ left: x, top: y, zIndex: Math.round(y) }}
+    >
+      <rect x="27" y="55" width="6" height="34" fill="#3d2516" />
+      <circle cx="30" cy="40" r="22" fill="#16382c" />
+      <circle cx="16" cy="46" r="15" fill="#1d4a35" />
+      <circle cx="44" cy="46" r="16" fill="#214f3a" />
+      <circle cx="30" cy="28" r="16" fill="#245c3f" />
+    </svg>
+  );
+}
+
+const DEMO_TREES = [
+  { x: 1300, y: 1905 }, // Tasha paces vertically through this one
+  { x: 2280, y: 1140 }, // beside the Keep plaza
+  { x: 3380, y: 2660 }, // by the Scholars' tower
+];

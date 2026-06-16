@@ -32,6 +32,27 @@
   pointer-events: none;
 }
 
+/* depth container: occluders + sprites y-sorted via z-index (baseline Y) */
+.depth-layer {
+  pointer-events: none;
+}
+.occluder {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+.demo-tree {
+  position: absolute;
+  transform: translate(-50%, -100%); /* trunk base at (x,y) */
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+.light-layer {
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
 /* crisp pixel art — no smoothing when the camera scales layers up */
 .pixel-canvas,
 .pixel-img {

@@ -1,35 +1,45 @@
 import { useEffect, useRef } from "react";
-import type { Facing, SceneHotspot, Urgency } from "../types";
+import type { ElevationZone, Facing, LightSource, SceneHotspot, Urgency } from "../types";
 import { URGENCY_COLOR } from "../types";
+import { depthScaleAt, elevationAt, lightTint } from "./depth";
 
 /**
- * An animated pixel-sprite character. Renders from a real sprite sheet
- * (`spot.sprite`) when supplied, else a procedural blocky SVG placeholder (SVG
- * paints declaratively — no canvas timing issues). Walks an ambient waypoint
- * loop (Phase-1 mock), picks a 4-direction facing from velocity, and frame-steps
- * the walk at a retro fps while position tweens smoothly. The `!` marker, status
- * ring and click-to-dialogue stay intact above the head; the name plate +
- * marker honour an optional per-character `labelOffset`.
- *
- * Depth-sorting / elevation / occluders / light tint arrive in Milestone C.
+ * An animated pixel-sprite character with depth (Milestone C). Renders from a
+ * real sprite sheet (`spot.sprite`) when supplied, else a procedural SVG
+ * placeholder. Walks an ambient waypoint loop, faces its velocity, frame-steps
+ * the walk. Each frame it also computes its depth:
+ *  - z-index = effective baseline Y (feet − elevation) → y-sorts against other
+ *    sprites and the occluder layers, so it passes behind/in front of props.
+ *  - elevation lift raises the figure + shadow onto raised ground (e.g. plaza).
+ *  - depth-scale shrinks it slightly toward the top, grows toward the bottom.
+ *  - nearby lights (crystals/torches) add a coloured rim glow.
  */
 
-const DRAW = 4; // up-scale of the 48px sheet frame → 192px tall in world space
-const SPEED = 95; // world px/sec wander
-const PAUSE = 0.7; // sec dwell at each waypoint
+const DRAW = 4;
+const SPEED = 95;
+const PAUSE = 0.7;
 
 export default function Sprite({
   spot,
   marker,
   onClick,
+  zones,
+  lights,
+  depthScale,
+  sceneH,
 }: {
   spot: SceneHotspot;
   marker?: Urgency;
   onClick: () => void;
+  zones?: ElevationZone[];
+  lights?: LightSource[];
+  depthScale?: { min: number; max: number };
+  sceneH: number;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const figRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const root = rootRef.current!;
@@ -45,6 +55,8 @@ export default function Sprite({
     let moving = false;
     let t = 0;
     let lastClass = "";
+    let scale = 1;
+    let glow = "";
 
     const apply = () => {
       const frame = moving ? Math.floor(t * fps) % 4 : -1;
@@ -59,14 +71,18 @@ export default function Sprite({
         const col = moving ? sheet.walkFrames[frame % sheet.walkFrames.length] : sheet.idleFrame;
         const el = imgRef.current;
         el.style.backgroundPosition = `-${col * sheet.frameW * DRAW}px -${row * sheet.frameH * DRAW}px`;
-        el.style.transform = `translate(-50%, -100%) scaleX(${flip ? -1 : 1})`;
+        el.style.transform = `translate(-50%, -100%) scale(${flip ? -scale : scale}, ${scale})`;
+        el.style.filter = glow;
       } else if (figRef.current) {
         const cls = `sprite-fig ph face-${facing}${moving ? " walking" : ""}`;
         if (cls !== lastClass) {
           figRef.current.className = cls;
           lastClass = cls;
         }
+        figRef.current.style.transform = `translate(-50%, -100%) scale(${scale})`;
+        figRef.current.style.filter = glow;
       }
+      if (shadowRef.current) shadowRef.current.style.transform = `translate(-50%, -50%) scale(${scale})`;
     };
 
     let raf = 0;
@@ -94,14 +110,22 @@ export default function Sprite({
           facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
         }
       }
-      root.style.transform = `translate(${x}px, ${y}px)`;
+
+      // depth
+      const lift = elevationAt(x, y, zones);
+      scale = depthScaleAt(y, sceneH, depthScale);
+      const tint = lightTint(x, y, lights);
+      glow = tint.intensity > 0 ? `drop-shadow(0 0 ${Math.round(tint.intensity * 16)}px ${tint.color})` : "";
+
+      root.style.transform = `translate(${x}px, ${y - lift}px)`;
+      root.style.zIndex = String(Math.round(y - lift)); // effective baseline → y-sort
       apply();
       raf = requestAnimationFrame(tick);
     };
     apply();
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [spot]);
+  }, [spot, zones, lights, depthScale, sceneH]);
 
   const needs = marker === "needs_me";
   const figW = 48 * DRAW;
@@ -110,7 +134,7 @@ export default function Sprite({
 
   return (
     <div ref={rootRef} className="sprite-root" style={{ transform: `translate(${spot.x}px, ${spot.y}px)` }}>
-      <div className="sprite-shadow" style={{ width: figW * 0.4, height: figW * 0.15 }} />
+      <div ref={shadowRef} className="sprite-shadow" style={{ width: figW * 0.4, height: figW * 0.15 }} />
 
       {spot.sprite ? (
         <div
