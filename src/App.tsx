@@ -2,29 +2,39 @@ import { useEffect } from "react";
 import SceneStage from "./scene/SceneStage";
 import DialogueBox from "./ui/DialogueBox";
 import NeedsYouNow from "./ui/NeedsYouNow";
+import Journal from "./ui/Journal";
 import { useRealmStore } from "./store/useRealmStore";
 import { SCENES, STARTING_SCENE } from "./data/scenes";
 import { summonCharacter } from "./scene/interactions";
+import { CHARACTER_LIST } from "./data/characters";
+import { agent } from "./agent";
 
 export default function App() {
-  const addNeed = useRealmStore((s) => s.addNeed);
+  const setJournalOpen = useRealmStore((s) => s.setJournalOpen);
 
-  // ── STEP DEMO ──────────────────────────────────────────────────────────────
-  // Seeds one "Needs You Now" item. Attending it (or clicking Brannock in the
-  // glade) glides the camera to him and opens his quest dialogue. Throwaway
-  // scaffolding — real quests come from the AgentEngine in the next step.
+  // ── Seed the realm from the AgentEngine ─────────────────────────────────────
+  // Ask each character's (mock) brain for an opening quest. Each offered quest
+  // becomes a proposal (→ a "!" over that character) plus a Needs You Now entry.
+  // Phase 2 swaps `agent` for the real Claude engine; this loop is unchanged.
   useEffect(() => {
+    const store = useRealmStore.getState();
+    if (store.proposals.length || store.quests.length) return; // don't re-seed
     const scene = SCENES[STARTING_SCENE];
-    addNeed({
-      id: "need-brannock",
-      title: "The Merchant seeks an audience",
-      detail: "Brannock has a venture he dares not begin without your word.",
-      ownerId: "brannock",
-      guildId: "merchants",
-      priority: 100,
-      onAct: () => summonCharacter(scene, "brannock"),
-    });
-  }, [addNeed]);
+    for (const char of CHARACTER_LIST) {
+      const quest = agent.proposeQuest(char);
+      if (!quest) continue;
+      store.offerQuest(quest);
+      store.addNeed({
+        id: `need-${char.id}`,
+        title: quest.title,
+        detail: `${char.portrait} ${char.name} awaits your decision`,
+        ownerId: char.id,
+        guildId: char.guildId,
+        priority: 100,
+        onAct: () => summonCharacter(scene, char.id),
+      });
+    }
+  }, []);
   // ───────────────────────────────────────────────────────────────────────────
 
   return (
@@ -32,6 +42,13 @@ export default function App() {
       <SceneStage />
       <NeedsYouNow />
       <DialogueBox />
+      <Journal />
+
+      <button className="tome-btn" onClick={() => setJournalOpen(true)} title="Open the Journal">
+        📖
+        <span>Journal</span>
+      </button>
+
       <div className="hint">Drag or WASD to roam · scroll to zoom · click a character</div>
     </>
   );

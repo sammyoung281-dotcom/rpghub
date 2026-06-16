@@ -20,6 +20,10 @@ export default function SceneStage() {
   const scene = SCENES[STARTING_SCENE];
   const cameraTarget = useRealmStore((s) => s.cameraTarget);
   const clearCameraTarget = useRealmStore((s) => s.clearCameraTarget);
+  // subscribe to quest state so markers re-render when quests change
+  useRealmStore((s) => s.proposals);
+  useRealmStore((s) => s.quests);
+  const characterMarker = useRealmStore((s) => s.characterMarker);
 
   useEffect(() => {
     const onResize = () => {
@@ -83,7 +87,12 @@ export default function SceneStage() {
           style={{ width: scene.width, height: scene.height, transform: layerTransform(1) }}
         >
           {scene.hotspots.map((spot) => (
-            <Hotspot key={spot.id} spot={spot} onClick={() => summonCharacter(scene, spot.characterId)} />
+            <Hotspot
+              key={spot.id}
+              spot={spot}
+              marker={characterMarker(spot.characterId)}
+              onClick={() => summonCharacter(scene, spot.characterId)}
+            />
           ))}
         </div>
       </div>

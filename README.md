@@ -76,8 +76,8 @@ the scene layout in `Keep.tsx` / `Scenery.tsx` stays the same.
 
 ## Build milestones (see BUILD_PROMPT.md §7)
 
-1. ✅ Scaffold + a walkable world with a controllable character + camera follow. *(now 3D god-game)*
+1. ✅ Scaffold + a roamable world with a god-camera. *(now painted 2.5D)*
 2. ✅ Parchment dialogue box + "Needs You Now" scroll.
-3. ⬜ Merchant's Guild: leader + `!` quest markers + accept/decline → Journal.
+3. ✅ Merchant's Guild: leader + `!` quest markers + accept/decline → Journal. *(+ AgentEngine seam, cast data)*
 4. ⬜ Multiple connected spaces (High Keep + guilds) with travel.
 5. ⬜ Elder/guild reports, authority levels, decree-a-task, persistence, juice.

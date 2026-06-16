@@ -1,21 +1,55 @@
 import { useRealmStore } from "../store/useRealmStore";
 import { MOCK_DIALOGUES } from "../data/mockDialogues";
+import { getCharacter } from "../data/characters";
 import type { RealmScene } from "../types";
 
 /**
- * Approach a character: glide the camera to them, then open their dialogue.
- * Shared by hotspot clicks and the "Attend ▸" button on the proclamation scroll,
- * so both routes feel identical. Clears any matching "need" once resolved.
+ * Approach a character: glide the camera to them, then open the right dialogue.
+ * - If they have a pending quest proposal → offer it with Accept / Decline.
+ *   Accepting writes it to the Journal (in_progress); declining drops it.
+ * - Otherwise → their scripted greeting/report.
+ * Shared by hotspot clicks and the scroll's "Attend ▸" so both feel identical.
  */
 export function summonCharacter(scene: RealmScene, characterId: string) {
   const store = useRealmStore.getState();
   const spot = scene.hotspots.find((h) => h.characterId === characterId);
   if (spot) store.focusCamera({ x: spot.x, y: spot.y - 80, zoom: 1.15 });
 
+  const proposal = store.proposals.find((p) => p.ownerId === characterId);
+  if (proposal) {
+    const char = getCharacter(characterId);
+    store.openDialogue({
+      id: `offer-${proposal.id}`,
+      speakerName: char?.name ?? proposal.ownerId,
+      speakerTitle: char?.title,
+      portrait: char?.portrait ?? "❓",
+      accent: char ? guildAccent(char.guildId) : undefined,
+      chunks: proposal.chunks,
+      choices: [
+        { id: "accept", label: "Accept the quest", tone: "accept" },
+        { id: "decline", label: "Decline for now", tone: "decline" },
+      ],
+      onResolve: (choice) => {
+        if (choice === "accept") store.acceptProposal(proposal.id);
+        else store.declineProposal(proposal.id);
+        store.removeNeed(`need-${characterId}`);
+      },
+    });
+    return;
+  }
+
+  // no pending quest — fall back to a scripted greeting
   const base = MOCK_DIALOGUES[characterId];
-  if (!base) return;
-  store.openDialogue({
-    ...base,
-    onResolve: () => store.removeNeed(`need-${characterId}`),
-  });
+  if (base) store.openDialogue({ ...base, onResolve: () => store.removeNeed(`need-${characterId}`) });
+}
+
+// minimal accent lookup without importing guild data circularly into hot paths
+function guildAccent(guildId: string | null): string | undefined {
+  const map: Record<string, string> = {
+    merchants: "#b8860b",
+    ledger: "#4a6d8c",
+    hearth: "#a85b3a",
+    scholars: "#6b8e4e",
+  };
+  return guildId ? map[guildId] : "#7b5fa0";
 }

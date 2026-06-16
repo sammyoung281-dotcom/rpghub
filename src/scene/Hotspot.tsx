@@ -1,14 +1,22 @@
-import type { SceneHotspot } from "../types";
+import type { SceneHotspot, Urgency } from "../types";
 import { URGENCY_COLOR } from "../types";
 
 /**
  * A character standing in the scene. Placeholder = a glowing disc + emoji +
  * name plate; swap for a sprite later (set a background image on .hs-body).
  * The floating marker shows colour-coded urgency (ADHD rule #3) and a "!" when
- * the character needs the Chairman.
+ * the character needs the Chairman. `marker` is supplied live from quest state.
  */
-export default function Hotspot({ spot, onClick }: { spot: SceneHotspot; onClick: () => void }) {
-  const needs = spot.marker === "needs_me";
+export default function Hotspot({
+  spot,
+  marker,
+  onClick,
+}: {
+  spot: SceneHotspot;
+  marker?: Urgency;
+  onClick: () => void;
+}) {
+  const needs = marker === "needs_me";
   return (
     <button
       className="hotspot"
@@ -18,10 +26,10 @@ export default function Hotspot({ spot, onClick }: { spot: SceneHotspot; onClick
         onClick();
       }}
     >
-      {spot.marker && (
+      {marker && (
         <span
           className={"hs-marker" + (needs ? " urgent" : "")}
-          style={{ background: URGENCY_COLOR[spot.marker] }}
+          style={{ background: URGENCY_COLOR[marker] }}
         >
           {needs ? "!" : ""}
         </span>

@@ -1,0 +1,184 @@
+.jrn-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  background: rgba(10, 7, 4, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: jrn-fade 0.15s ease-out;
+}
+@keyframes jrn-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.jrn-book {
+  position: relative;
+  width: min(720px, 94vw);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #efe2c0 0%, #e3d2a8 100%);
+  color: #3a2a18;
+  border: 3px solid #6b4a2b;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  padding: 18px 22px 20px;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  animation: jrn-rise 0.18s ease-out;
+}
+@keyframes jrn-rise {
+  from { transform: translateY(14px) scale(0.99); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* the central binding */
+.jrn-spine {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 50%;
+  width: 2px;
+  background: rgba(107, 74, 43, 0.25);
+  pointer-events: none;
+}
+
+.jrn-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid rgba(107, 74, 43, 0.35);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+.jrn-head h2 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 0.5px;
+}
+.jrn-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6b4a2b;
+}
+
+.jrn-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.jrn-chip {
+  font: 600 13px "Trebuchet MS", sans-serif;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 2px solid #b89a6a;
+  background: #f4ecd4;
+  color: #3a2a18;
+  cursor: pointer;
+}
+.jrn-chip.on {
+  background: #6b4a2b;
+  color: #f4e9cf;
+  border-color: #6b4a2b;
+}
+
+.jrn-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.jrn-empty {
+  text-align: center;
+  font-style: italic;
+  opacity: 0.7;
+  padding: 24px;
+}
+
+.jrn-entry {
+  position: relative;
+  background: #f6efda;
+  border: 1px solid #cdb98a;
+  border-left: 5px solid #999;
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow: hidden;
+}
+.jrn-entry.band-done {
+  opacity: 0.82;
+}
+
+.jrn-entry-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.jrn-pip {
+  font-size: 12px;
+}
+.jrn-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.jrn-meta {
+  font-size: 12.5px;
+  opacity: 0.78;
+  margin-top: 3px;
+}
+.jrn-meta em {
+  color: #b3261e;
+  font-style: italic;
+}
+
+.jrn-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+.jrn-btn {
+  font: 700 13px "Trebuchet MS", sans-serif;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 2px solid #3a2a18;
+  cursor: pointer;
+}
+.jrn-btn.attend {
+  background: #c0392b;
+  color: #fff;
+  border-color: #7d241c;
+}
+.jrn-btn.seal {
+  background: #4f8a3d;
+  color: #f4ffe9;
+  border-color: #2f5a24;
+}
+.jrn-btn:active {
+  transform: translateY(1px);
+}
+
+/* wax stamp on completed quests */
+.jrn-seal {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font: 900 14px "Trebuchet MS", sans-serif;
+  letter-spacing: 2px;
+  color: #8c2b27;
+  border: 3px solid #8c2b27;
+  border-radius: 6px;
+  padding: 2px 8px;
+  transform: rotate(-12deg);
+  opacity: 0.85;
+  animation: jrn-stamp 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes jrn-stamp {
+  0% { transform: rotate(-12deg) scale(2.4); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: rotate(-12deg) scale(1); opacity: 0.85; }
+}

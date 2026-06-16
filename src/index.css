@@ -29,6 +29,41 @@ html, body, #root {
   height: 100% !important;
 }
 
+/* floating Journal tome button (bottom-right) */
+.tome-btn {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  width: 64px;
+  padding: 8px 0 6px;
+  font-size: 26px;
+  font-family: "Trebuchet MS", sans-serif;
+  color: #f4e9cf;
+  background: linear-gradient(180deg, #7b5a34, #5e4326);
+  border: 2px solid #c9a24b;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s ease, filter 0.12s ease;
+}
+.tome-btn span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.tome-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+.tome-btn:active {
+  transform: translateY(0);
+}
+
 /* tiny on-screen control hint */
 .hint {
   position: absolute;
