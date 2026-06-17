@@ -19,7 +19,9 @@ const SHEET = (src: string): SpriteSheet => ({
   // final art: 2526×1696 sheets, 6×4 grid → 421×424 per cell
   frameW: 421,
   frameH: 424,
-  rows: { down: 0, left: 1, right: 2, up: 3 },
+  // Verified per-sheet at full res: the row order is down, RIGHT, LEFT, up
+  // (NOT the usual down/left/right/up) — consistent across all six characters.
+  rows: { down: 0, right: 1, left: 2, up: 3 },
   cols: 6,
   idleFrame: 0,
   walkFrames: [1, 2, 3, 4],
