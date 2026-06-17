@@ -5,7 +5,7 @@ import { useCamera } from "./useCamera";
 import Sprite from "./Sprite";
 import Motes from "./Motes";
 import PixelPlaceholder from "./PixelPlaceholder";
-import { summonCharacter } from "./interactions";
+import { openCharacterDialogue } from "./interactions";
 import "./scene.css";
 
 interface RenderLayer {
@@ -33,6 +33,7 @@ export default function SceneStage() {
   useRealmStore((s) => s.proposals);
   useRealmStore((s) => s.quests);
   const characterMarker = useRealmStore((s) => s.characterMarker);
+  const setActiveScene = useRealmStore((s) => s.setActiveScene);
 
   useEffect(() => {
     const onResize = () => {
@@ -64,7 +65,7 @@ export default function SceneStage() {
     const behindL: RenderLayer[] = L.filter((l) => l.z === "background" || l.z === "ground").map((l, i) => ({
       key: `b-${i}`,
       parallax: l.parallax ?? 1,
-      node: <img className="pixel-img" src={l.src} alt="" style={{ width: "100%", height: "100%" }} draggable={false} />,
+      node: <img className="scene-img" src={l.src} alt="" style={{ width: "100%", height: "100%" }} draggable={false} />,
     }));
     if (behindL.length === 0) {
       behindL.push({ key: "pixel-placeholder", parallax: 1, node: <PixelPlaceholder scene={scene} /> });
@@ -88,12 +89,27 @@ export default function SceneStage() {
           </div>
         ))}
 
+        {/* clickable building doors (overworld) */}
+        {scene.doors?.map((d) => (
+          <button
+            key={d.id}
+            className="scene-door"
+            style={{ transform: layerTransform(1), zIndex: 1 }}
+            onClick={(e) => { e.stopPropagation(); setActiveScene(d.to); }}
+            title={`Enter ${d.label}`}
+          >
+            <span className="door-rect" style={{ left: d.x, top: d.y, width: d.w, height: d.h }}>
+              <span className="door-label">⮕ {d.label}</span>
+            </span>
+          </button>
+        ))}
+
         {/* depth container: occluders + sprites, y-sorted by z-index */}
         <div className="scene-layer depth-layer" style={{ width: scene.width, height: scene.height, transform: layerTransform(1) }}>
           {occluders.map((l, i) => (
             <img
               key={`occ-${i}`}
-              className="pixel-img occluder"
+              className="scene-img occluder"
               src={l.src}
               alt=""
               style={{ width: scene.width, height: scene.height, zIndex: Math.round(l.baseline ?? scene.height) }}
@@ -108,7 +124,8 @@ export default function SceneStage() {
               key={spot.id}
               spot={spot}
               marker={characterMarker(spot.characterId)}
-              onClick={() => summonCharacter(spot.characterId)}
+              onClick={() => openCharacterDialogue(spot.characterId)}
+              spriteHeight={scene.spriteHeight ?? 190}
               zones={scene.elevationZones}
               lights={scene.lights}
               depthScale={scene.depthScale}

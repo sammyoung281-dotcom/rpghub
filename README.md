@@ -32,16 +32,26 @@ art is single-angle).
 > painted feel. So scenes are images you generate/commission; the engine brings
 > them to life.
 
-## Pixel-art pipeline
+## Art pipeline (painterly)
 
-The world is **16-bit pixel art** (Milestones A–D done). See `PIXEL_WORLD_PROMPT.md` + `SPRITE_SPEC.md`.
+The world uses **painterly art** (flat single paintings + sheet-animated
+characters) — rendered **smoothly** (bilinear), NOT pixelated.
 
-**Now a set of per-place scenes you travel between** (not one big map): `keep`,
-`merchants`, `ledger`, `hearth`, `scholars` — each its own **local 480×270**
-pixel space in `src/data/scenes.ts` (all coords are 0..480 / 0..270). The camera
-*covers* the scene (fills the viewport, no zoom-out-to-void) and you swap scenes
-via the **Travel** button (`activeSceneId` in the store). Each character's sprite
-sheet + a leader per hall are wired; Tasha shares the Merchant's Guild.
+- **Overworld + interiors:** the app opens on `realm.png` (overworld). Five
+  flat interiors (`keep/merchants/ledger/hearth/scholars`) are entered via
+  **clickable building doors** (`scene.doors[]`); a **"↩ Leave to realm"** button
+  returns. You can also jump anywhere via **Travel**. `activeSceneId` (store) is
+  the current scene; `<SceneStage key={activeSceneId}>` refits the camera per scene.
+- **All scenes are 1376×768** local px (matching the paintings); coords (hotspots,
+  doors) are in that space.
+- **Sprite sheets** are `1260×848`, 6 cols × 4 rows, **frameW 210 / frameH 212**
+  (rows = down/left/right/up; cols = idle, 4 walk, work). Rendered by a per-scene
+  **`spriteHeight`** target (small ~58 on the overworld, large ~190 in rooms) =
+  `spriteHeight / frameH`, anchored by the feet (bottom-centre).
+- **No walk-behind:** flat paintings have no separate foreground layer, so sprites
+  render on top (occluder/elevation/light code remains but is unused by these scenes).
+- To re-tune: nudge `hotspots[].x,y`, `doors[]` rects, and `spriteHeight` in
+  `src/data/scenes.ts` — all by screenshot.
 
 - **Crisp scaling:** all scene/sprite layers render with `image-rendering: pixelated`
   (`.pixel-canvas` / `.pixel-img` in `src/scene/scene.css`). No blur when the camera zooms.

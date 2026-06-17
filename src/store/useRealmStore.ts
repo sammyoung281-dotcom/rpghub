@@ -162,7 +162,7 @@ export const useRealmStore = create<RealmState>()(
         }
       },
 
-      activeSceneId: "keep",
+      activeSceneId: "realm",
       setActiveScene: (id) => set({ activeSceneId: id }),
 
       journalOpen: false,

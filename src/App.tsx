@@ -17,6 +17,7 @@ export default function App() {
   const setCouncilOpen = useRealmStore((s) => s.setCouncilOpen);
   const setDecreeOpen = useRealmStore((s) => s.setDecreeOpen);
   const activeSceneId = useRealmStore((s) => s.activeSceneId);
+  const setActiveScene = useRealmStore((s) => s.setActiveScene);
 
   // ── Seed the realm from the AgentEngine ─────────────────────────────────────
   // Ask each character's (mock) brain for an opening quest. Each offered quest
@@ -36,6 +37,11 @@ export default function App() {
   return (
     <>
       <SceneStage key={activeSceneId} />
+      {activeSceneId !== "realm" && (
+        <button className="leave-btn" onClick={() => setActiveScene("realm")} title="Return to the realm">
+          ↩ Leave to realm
+        </button>
+      )}
       <NeedsYouNow />
       <DialogueBox />
       <Journal />

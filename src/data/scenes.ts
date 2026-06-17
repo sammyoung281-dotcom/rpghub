@@ -1,17 +1,23 @@
 import type { RealmScene, SpriteSheet } from "../types";
 
 /**
- * THE REALM — now a set of per-place pixel scenes you travel between (Travel
- * button / fast-travel). Each scene is its OWN local 480×270 pixel-art space
- * (matching the PNGs in /public/scenes); all coords here — hotspot x/y, occluder
- * baseline, light x/y, elevation polygons, waypoints — are in 0..480 / 0..270.
- * Data-driven: a new place = add a scene here + drop its layer PNGs.
+ * THE REALM — a painterly overworld (`realm.png`) you open on, plus five flat
+ * interior paintings you enter through building doors. Each scene is its own
+ * local space matching its art: overworld + interiors are all 1376×768.
+ *
+ * Flat single paintings → no occluder/light/ground layers, no walk-behind; the
+ * sprite just renders on top. The only measurements that matter are the sprite
+ * frame size (210×212) and each scene's `spriteHeight` (small on the overworld,
+ * large in rooms). Tune all coords / door rects by screenshot.
  */
+
+const W = 1376;
+const H = 768;
 
 const SHEET = (src: string): SpriteSheet => ({
   src,
-  frameW: 48,
-  frameH: 48,
+  frameW: 210,
+  frameH: 212,
   rows: { down: 0, left: 1, right: 2, up: 3 },
   cols: 6,
   idleFrame: 0,
@@ -20,196 +26,107 @@ const SHEET = (src: string): SpriteSheet => ({
   fps: 8,
 });
 
+/** A character standing in a room (large). */
+function leader(id: string, charId: string, name: string, emoji: string, accent: string, x: number, y: number, sheet: string) {
+  return {
+    id,
+    characterId: charId,
+    name,
+    emoji,
+    accent,
+    x,
+    y,
+    sprite: SHEET(sheet),
+    waypoints: [{ x, y }, { x: x - 70, y: y - 12 }, { x: x + 70, y: y - 8 }],
+  };
+}
+
 export const SCENES: Record<string, RealmScene> = {
-  // 🏰 The High Keep — throne hub. Leader: Maeve the Elder (owl).
+  // 🗺️ The overworld — default view. Everyone mills near their building; doors enter.
+  realm: {
+    id: "realm",
+    name: "The Realm of Endeavour",
+    emoji: "🗺️",
+    width: W,
+    height: H,
+    spriteHeight: 58, // small overview figures
+    layers: [{ src: "/scenes/realm.png", z: "background", parallax: 1 }],
+    // Door rects + figure spots are first-pass over the painted buildings —
+    // tune by screenshot. Buildings: keep=central stairs, merchants=top-left
+    // tavern, ledger=top-right cathedral, hearth=bottom-left cottage,
+    // scholars=bottom-right tower.
+    doors: [
+      { id: "d-keep", to: "keep", label: "The High Keep", x: 580, y: 130, w: 200, h: 170 },
+      { id: "d-merchants", to: "merchants", label: "The Merchant's Guild", x: 190, y: 220, w: 200, h: 160 },
+      { id: "d-ledger", to: "ledger", label: "The Order of the Ledger", x: 1010, y: 180, w: 240, h: 200 },
+      { id: "d-hearth", to: "hearth", label: "The Hearthkeepers", x: 300, y: 560, w: 200, h: 170 },
+      { id: "d-scholars", to: "scholars", label: "The Scholars' Tower", x: 1000, y: 520, w: 170, h: 210 },
+    ],
+    hotspots: [
+      smallChar("r-elder", "elder", "Maeve the Elder", "🦉", "#7b5fa0", 690, 360, "/sprites/elder.png"),
+      smallChar("r-brannock", "brannock", "Brannock Quillfeather", "🦊", "#b8860b", 300, 440, "/sprites/brannock.png"),
+      smallChar("r-tasha", "tasha", "Tasha Coppernick", "🦝", "#9c6a3c", 380, 470, "/sprites/tasha.png"),
+      smallChar("r-edmund", "edmund", "Magister Edmund Vell", "🦡", "#4a6d8c", 1070, 480, "/sprites/edmund.png"),
+      smallChar("r-wren", "wren", "Wren Hollowmoor", "🦔", "#a85b3a", 430, 660, "/sprites/wren.png"),
+      smallChar("r-lyra", "lyra", "Lyra Pageturner", "🦌", "#6b8e4e", 1000, 670, "/sprites/lyra.png"),
+    ],
+  },
+
   keep: {
-    id: "keep",
-    name: "The High Keep",
-    emoji: "🏰",
-    width: 480,
-    height: 270,
-    layers: [
-      { src: "/scenes/keep_bg.png", z: "background", parallax: 0.95 },
-      { src: "/scenes/keep_ground.png", z: "ground", parallax: 1 },
-      { src: "/scenes/keep_occ_canopy.png", z: "occluder", baseline: 118 },
-      { src: "/scenes/keep_occ_plaza.png", z: "occluder", baseline: 210 },
-      { src: "/scenes/keep_light.png", z: "light" },
-    ],
-    elevationZones: [
-      { id: "throne-plaza", polygon: [{ x: 160, y: 150 }, { x: 320, y: 150 }, { x: 330, y: 214 }, { x: 150, y: 214 }], heightOffset: 8 },
-    ],
-    lights: [
-      { id: "rune-staff", x: 240, y: 182, color: "#56f0e6", radius: 55, flicker: true },
-      { id: "sconce-l", x: 180, y: 150, color: "#ffd27a", radius: 40, flicker: true },
-      { id: "sconce-r", x: 300, y: 150, color: "#ffd27a", radius: 40, flicker: true },
-    ],
-    depthScale: { min: 0.9, max: 1.08 },
-    hotspots: [
-      {
-        id: "hs-elder",
-        characterId: "elder",
-        name: "Maeve the Elder",
-        emoji: "🦉",
-        accent: "#7b5fa0",
-        x: 240,
-        y: 200,
-        sprite: SHEET("/sprites/elder.png"),
-        waypoints: [{ x: 240, y: 200 }, { x: 205, y: 194 }, { x: 275, y: 194 }],
-      },
-    ],
+    id: "keep", name: "The High Keep", emoji: "🏰", width: W, height: H, spriteHeight: 200,
+    layers: [{ src: "/scenes/keep_bg.png", z: "background", parallax: 1 }],
+    hotspots: [leader("hs-elder", "elder", "Maeve the Elder", "🦉", "#7b5fa0", 688, 600, "/sprites/elder.png")],
   },
 
-  // 🪙 The Merchant's Guild — warm market hall. Brannock (fox) + Tasha (raccoon).
   merchants: {
-    id: "merchants",
-    name: "The Merchant's Guild",
-    emoji: "🪙",
-    width: 480,
-    height: 270,
-    layers: [
-      { src: "/scenes/merchants_bg.png", z: "background", parallax: 1 },
-      { src: "/scenes/merchants_ground.png", z: "ground", parallax: 1 },
-      { src: "/scenes/merchants_occ.png", z: "occluder", baseline: 210 },
-      { src: "/scenes/merchants_light.png", z: "light" },
-    ],
-    lights: [
-      { id: "lantern-l", x: 160, y: 36, color: "#ffd27a", radius: 26, flicker: true },
-      { id: "lantern-c", x: 250, y: 36, color: "#ffd27a", radius: 26, flicker: true },
-      { id: "lantern-r", x: 340, y: 36, color: "#ffd27a", radius: 26, flicker: true },
-    ],
-    depthScale: { min: 0.9, max: 1.08 },
+    id: "merchants", name: "The Merchant's Guild", emoji: "🪙", width: W, height: H, spriteHeight: 190,
+    layers: [{ src: "/scenes/merchants_bg.png", z: "background", parallax: 1 }],
     hotspots: [
-      {
-        id: "hs-brannock",
-        characterId: "brannock",
-        name: "Brannock Quillfeather",
-        emoji: "🦊",
-        accent: "#b8860b",
-        x: 215,
-        y: 190,
-        sprite: SHEET("/sprites/brannock.png"),
-        waypoints: [{ x: 215, y: 190 }, { x: 175, y: 196 }, { x: 250, y: 192 }],
-      },
-      {
-        id: "hs-tasha",
-        characterId: "tasha",
-        name: "Tasha Coppernick",
-        emoji: "🦝",
-        accent: "#9c6a3c",
-        x: 320,
-        y: 196,
-        sprite: SHEET("/sprites/tasha.png"),
-        waypoints: [{ x: 320, y: 196 }, { x: 350, y: 190 }, { x: 300, y: 198 }],
-      },
+      leader("hs-brannock", "brannock", "Brannock Quillfeather", "🦊", "#b8860b", 560, 600, "/sprites/brannock.png"),
+      leader("hs-tasha", "tasha", "Tasha Coppernick", "🦝", "#9c6a3c", 880, 620, "/sprites/tasha.png"),
     ],
   },
 
-  // ⚙️ Order of the Ledger — cold records hall. Leader: Edmund (badger).
   ledger: {
-    id: "ledger",
-    name: "The Order of the Ledger",
-    emoji: "⚙️",
-    width: 480,
-    height: 270,
-    layers: [
-      { src: "/scenes/ledger_bg.png", z: "background", parallax: 1 },
-      { src: "/scenes/ledger_ground.png", z: "ground", parallax: 1 },
-      { src: "/scenes/ledger_occ.png", z: "occluder", baseline: 208 },
-      { src: "/scenes/ledger_light.png", z: "light" },
-    ],
-    lights: [
-      { id: "window", x: 240, y: 70, color: "#405a92", radius: 46 },
-      { id: "candle", x: 260, y: 200, color: "#ffd27a", radius: 16, flicker: true },
-    ],
-    depthScale: { min: 0.9, max: 1.06 },
-    hotspots: [
-      {
-        id: "hs-edmund",
-        characterId: "edmund",
-        name: "Magister Edmund Vell",
-        emoji: "🦡",
-        accent: "#4a6d8c",
-        x: 240,
-        y: 190,
-        sprite: SHEET("/sprites/edmund.png"),
-        waypoints: [{ x: 240, y: 190 }, { x: 200, y: 196 }, { x: 285, y: 194 }],
-      },
-    ],
+    id: "ledger", name: "The Order of the Ledger", emoji: "⚙️", width: W, height: H, spriteHeight: 190,
+    layers: [{ src: "/scenes/ledger_bg.png", z: "background", parallax: 1 }],
+    hotspots: [leader("hs-edmund", "edmund", "Magister Edmund Vell", "🦡", "#4a6d8c", 688, 610, "/sprites/edmund.png")],
   },
 
-  // 🛡️ The Hearthkeepers — cosy cottage. Leader: Wren (hedgehog).
   hearth: {
-    id: "hearth",
-    name: "The Hearthkeepers",
-    emoji: "🛡️",
-    width: 480,
-    height: 270,
-    layers: [
-      { src: "/scenes/hearth_bg.png", z: "background", parallax: 1 },
-      { src: "/scenes/hearth_ground.png", z: "ground", parallax: 1 },
-      { src: "/scenes/hearth_occ.png", z: "occluder", baseline: 212 },
-      { src: "/scenes/hearth_light.png", z: "light" },
-    ],
-    lights: [
-      { id: "hearth-fire", x: 396, y: 128, color: "#ff9d4d", radius: 60, flicker: true },
-      { id: "window", x: 242, y: 60, color: "#405a92", radius: 30 },
-    ],
-    depthScale: { min: 0.9, max: 1.08 },
-    hotspots: [
-      {
-        id: "hs-wren",
-        characterId: "wren",
-        name: "Wren Hollowmoor",
-        emoji: "🦔",
-        accent: "#a85b3a",
-        x: 210,
-        y: 190,
-        sprite: SHEET("/sprites/wren.png"),
-        waypoints: [{ x: 210, y: 190 }, { x: 165, y: 196 }, { x: 355, y: 196 }],
-      },
-    ],
+    id: "hearth", name: "The Hearthkeepers", emoji: "🛡️", width: W, height: H, spriteHeight: 190,
+    layers: [{ src: "/scenes/hearth_bg.png", z: "background", parallax: 1 }],
+    hotspots: [leader("hs-wren", "wren", "Wren Hollowmoor", "🦔", "#a85b3a", 660, 610, "/sprites/wren.png")],
   },
 
-  // 📜 The Scholars' Tower — arcane study. Leader: Lyra (deer).
   scholars: {
-    id: "scholars",
-    name: "The Scholars' Tower",
-    emoji: "📜",
-    width: 480,
-    height: 270,
-    layers: [
-      { src: "/scenes/scholars_bg.png", z: "background", parallax: 1 },
-      { src: "/scenes/scholars_ground.png", z: "ground", parallax: 1 },
-      { src: "/scenes/scholars_occ.png", z: "occluder", baseline: 214 },
-      { src: "/scenes/scholars_light.png", z: "light" },
-    ],
-    lights: [
-      { id: "glyph", x: 240, y: 190, color: "#56f0e6", radius: 60, flicker: true },
-      { id: "tome", x: 388, y: 188, color: "#56f0e6", radius: 14, flicker: true },
-    ],
-    depthScale: { min: 0.9, max: 1.06 },
-    hotspots: [
-      {
-        id: "hs-lyra",
-        characterId: "lyra",
-        name: "Lyra Pageturner",
-        emoji: "🦌",
-        accent: "#6b8e4e",
-        x: 240,
-        y: 192,
-        sprite: SHEET("/sprites/lyra.png"),
-        waypoints: [{ x: 240, y: 192 }, { x: 200, y: 198 }, { x: 280, y: 196 }],
-      },
-    ],
+    id: "scholars", name: "The Scholars' Tower", emoji: "📜", width: W, height: H, spriteHeight: 190,
+    layers: [{ src: "/scenes/scholars_bg.png", z: "background", parallax: 1 }],
+    hotspots: [leader("hs-lyra", "lyra", "Lyra Pageturner", "🦌", "#6b8e4e", 688, 610, "/sprites/lyra.png")],
   },
 };
 
-/** Travel order. */
-export const SCENE_LIST = ["keep", "merchants", "ledger", "hearth", "scholars"].map((id) => SCENES[id]);
+/** A small wandering figure on the overworld. */
+function smallChar(id: string, charId: string, name: string, emoji: string, accent: string, x: number, y: number, sheet: string) {
+  return {
+    id,
+    characterId: charId,
+    name,
+    emoji,
+    accent,
+    x,
+    y,
+    sprite: SHEET(sheet),
+    waypoints: [{ x, y }, { x: x - 36, y: y - 6 }, { x: x + 36, y: y + 4 }],
+  };
+}
 
-export const STARTING_SCENE = "keep";
+export const SCENE_LIST = ["realm", "keep", "merchants", "ledger", "hearth", "scholars"].map((id) => SCENES[id]);
 
-/** Which scene a character lives in (for fast-travel + summon). */
+export const STARTING_SCENE = "realm";
+
+/** The interior scene a character lives in (prefer their room over the overworld). */
 export function sceneOfCharacter(characterId: string): string | undefined {
-  return Object.values(SCENES).find((s) => s.hotspots.some((h) => h.characterId === characterId))?.id;
+  const inRoom = Object.values(SCENES).find((s) => s.id !== "realm" && s.hotspots.some((h) => h.characterId === characterId));
+  return (inRoom ?? Object.values(SCENES).find((s) => s.hotspots.some((h) => h.characterId === characterId)))?.id;
 }

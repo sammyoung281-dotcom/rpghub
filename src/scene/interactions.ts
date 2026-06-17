@@ -11,11 +11,17 @@ import { sceneOfCharacter } from "../data/scenes";
  * - Otherwise → their scripted greeting/report.
  * Shared by hotspot clicks and the scroll's "Attend ▸" so both feel identical.
  */
+/** Travel to the character's room (if not already there), then talk. */
 export function summonCharacter(characterId: string) {
   const store = useRealmStore.getState();
   const sceneId = sceneOfCharacter(characterId);
   if (sceneId && sceneId !== store.activeSceneId) store.setActiveScene(sceneId);
+  openCharacterDialogue(characterId);
+}
 
+/** Talk to a character who is already on-screen (no travel). */
+export function openCharacterDialogue(characterId: string) {
+  const store = useRealmStore.getState();
   const proposal = store.proposals.find((p) => p.ownerId === characterId);
   if (proposal) {
     const char = getCharacter(characterId);

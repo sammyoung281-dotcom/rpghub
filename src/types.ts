@@ -148,6 +148,17 @@ export interface SceneLayer {
   parallax?: number; // 1 = locked to ground; <1 = far drift
 }
 
+/** A clickable door on the overworld that enters an interior scene. */
+export interface SceneDoor {
+  id: string;
+  to: string; // target scene id
+  label: string;
+  x: number; // scene-local rect (top-left)
+  y: number;
+  w: number;
+  h: number;
+}
+
 /**
  * A clickable character standing in a scene. Lives in scene (world) coordinates;
  * the camera/parallax maths place it on screen. `marker` drives the floating
@@ -205,6 +216,11 @@ export interface RealmScene {
   depthScale?: { min: number; max: number };
   /** Emoji shown in the Travel menu. */
   emoji?: string;
+  /** Target on-screen height (scene-local px) for sprites in this scene — small on
+   *  the overworld, large in interiors. Sprite scale = spriteHeight / frameH. */
+  spriteHeight?: number;
+  /** Clickable building doors (overworld) that enter interior scenes. */
+  doors?: SceneDoor[];
   /** Legacy single-big-map region layout (unused by the per-scene pixel model). */
   regions?: SceneRegion[];
   hotspots: SceneHotspot[];
