@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useRealmStore } from "../store/useRealmStore";
 import { GUILDS } from "../data/guilds";
 import { getCharacter } from "../data/characters";
-import { SCENES, STARTING_SCENE } from "../data/scenes";
 import { summonCharacter } from "../scene/interactions";
 import { URGENCY_COLOR, URGENCY_DOT, type Quest, type Urgency } from "../types";
 import "./Journal.css";
@@ -48,8 +47,6 @@ export default function Journal() {
   }, [all, filter]);
 
   if (!open) return null;
-
-  const scene = SCENES[STARTING_SCENE];
 
   return (
     <div className="jrn-backdrop" onClick={() => setOpen(false)}>
@@ -107,7 +104,7 @@ export default function Journal() {
                       className="jrn-btn attend"
                       onClick={() => {
                         setOpen(false);
-                        summonCharacter(scene, q.ownerId);
+                        summonCharacter(q.ownerId);
                       }}
                     >
                       Attend ▸

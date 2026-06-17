@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useRealmStore } from "../store/useRealmStore";
 import { getCharacter } from "../data/characters";
-import { SCENES, STARTING_SCENE } from "../data/scenes";
 import { summonCharacter } from "../scene/interactions";
 import "./NeedsYouNow.css";
 
@@ -37,7 +36,6 @@ export default function NeedsYouNow() {
 
   const top = needs[0] ?? null;
   const extra = needs.length - 1;
-  const scene = SCENES[STARTING_SCENE];
 
   return (
     <div className={"nyn-scroll" + (top ? " active" : "")}>
@@ -49,7 +47,7 @@ export default function NeedsYouNow() {
             <div className="nyn-title">🟥 {top.title}</div>
             <div className="nyn-detail">{top.detail}</div>
           </div>
-          <button className="nyn-act" onClick={() => summonCharacter(scene, top.ownerId)}>
+          <button className="nyn-act" onClick={() => summonCharacter(top.ownerId)}>
             Attend ▸
           </button>
         </div>

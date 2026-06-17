@@ -32,9 +32,16 @@ art is single-angle).
 > painted feel. So scenes are images you generate/commission; the engine brings
 > them to life.
 
-## Pixel-art pipeline (visual upgrade, in progress)
+## Pixel-art pipeline
 
-The world is moving to **16-bit pixel art**. See `PIXEL_WORLD_PROMPT.md` + `SPRITE_SPEC.md`.
+The world is **16-bit pixel art** (Milestones A–D done). See `PIXEL_WORLD_PROMPT.md` + `SPRITE_SPEC.md`.
+
+**Now a set of per-place scenes you travel between** (not one big map): `keep`,
+`merchants`, `ledger`, `hearth`, `scholars` — each its own **local 480×270**
+pixel space in `src/data/scenes.ts` (all coords are 0..480 / 0..270). The camera
+*covers* the scene (fills the viewport, no zoom-out-to-void) and you swap scenes
+via the **Travel** button (`activeSceneId` in the store). Each character's sprite
+sheet + a leader per hall are wired; Tasha shares the Merchant's Guild.
 
 - **Crisp scaling:** all scene/sprite layers render with `image-rendering: pixelated`
   (`.pixel-canvas` / `.pixel-img` in `src/scene/scene.css`). No blur when the camera zooms.

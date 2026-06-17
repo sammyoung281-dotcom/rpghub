@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRealmStore } from "../store/useRealmStore";
 import { SCENES, STARTING_SCENE } from "../data/scenes";
 import { useCamera } from "./useCamera";
@@ -26,7 +26,8 @@ export default function SceneStage() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
 
-  const scene = SCENES[STARTING_SCENE];
+  const activeSceneId = useRealmStore((s) => s.activeSceneId);
+  const scene = SCENES[activeSceneId] ?? SCENES[STARTING_SCENE];
   const cameraTarget = useRealmStore((s) => s.cameraTarget);
   const clearCameraTarget = useRealmStore((s) => s.clearCameraTarget);
   useRealmStore((s) => s.proposals);
@@ -80,7 +81,7 @@ export default function SceneStage() {
 
   return (
     <div id="game-root" ref={viewportRef} className="scene-viewport">
-      <div className="scene-stage" style={{ transform: `scale(${cam.zoom})` }}>
+      <div className="scene-stage" style={{ transform: `scale(${cam.zoom})`, ["--zoom" as string]: cam.zoom } as CSSProperties}>
         {behind.map((l) => (
           <div key={l.key} className="scene-layer" style={{ width: scene.width, height: scene.height, transform: layerTransform(l.parallax) }}>
             {l.node}
@@ -107,7 +108,7 @@ export default function SceneStage() {
               key={spot.id}
               spot={spot}
               marker={characterMarker(spot.characterId)}
-              onClick={() => summonCharacter(scene, spot.characterId)}
+              onClick={() => summonCharacter(spot.characterId)}
               zones={scene.elevationZones}
               lights={scene.lights}
               depthScale={scene.depthScale}

@@ -2,9 +2,9 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  /* matches the pixel meadow's base grass so the scene rectangle blends into the
-     backdrop with no visible seam at full zoom-out. */
-  background: #357a4d;
+  /* framed interiors cover the viewport; this dark neutral only shows briefly
+     during zoom transitions. */
+  background: #14121f;
   cursor: grab;
   user-select: none;
 }
@@ -104,11 +104,21 @@
   box-shadow: 0 0 10px currentColor;
 }
 
-.sprite-name {
+/* label stack (marker + name) — anchored above the head, counter-scaled by
+   1/zoom (via the --zoom var the stage sets) so it stays screen-readable. */
+.sprite-label {
   position: absolute;
   left: 50%;
-  top: -224px;
-  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transform: translate(-50%, -100%) scale(calc(1 / var(--zoom, 1)));
+  transform-origin: bottom center;
+  pointer-events: none;
+}
+
+.sprite-name {
   font: 700 13px "Trebuchet MS", sans-serif;
   color: #f4e9cf;
   background: rgba(27, 26, 46, 0.85);
@@ -120,10 +130,6 @@
 }
 
 .sprite-marker {
-  position: absolute;
-  left: 50%;
-  top: -256px;
-  transform: translateX(-50%);
   width: 28px;
   height: 28px;
   border-radius: 50%;

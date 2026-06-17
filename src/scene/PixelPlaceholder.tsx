@@ -59,13 +59,15 @@ export default function PixelPlaceholder({ scene }: { scene: RealmScene }) {
     ctx.putImageData(img, 0, 0);
 
     const c = (v: number) => v / PX; // world → canvas
-    const keep = scene.regions.find((r) => r.id === "keep") ?? scene.regions[0];
+    const regions = scene.regions ?? [];
+    const keep = regions.find((r) => r.id === "keep") ?? regions[0];
+    if (!keep) return; // no legacy regions → nothing to draw (real layers in use)
 
     // paths
     ctx.strokeStyle = "#9c6a3c";
     ctx.lineWidth = 16;
     ctx.lineCap = "round";
-    for (const r of scene.regions) {
+    for (const r of regions) {
       if (r.id === "keep") continue;
       ctx.beginPath();
       ctx.moveTo(c(keep.cx), c(keep.cy));
@@ -88,7 +90,7 @@ export default function PixelPlaceholder({ scene }: { scene: RealmScene }) {
       ctx.fillRect(sx - 4, sy - Math.min(12, wh), 8, Math.min(12, wh));
     };
 
-    [...scene.regions]
+    [...regions]
       .sort((a, b) => a.cy - b.cy)
       .forEach((r) => {
         const col = REGION_COLOR[r.id] ?? REGION_COLOR.keep;

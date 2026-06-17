@@ -203,7 +203,10 @@ export interface RealmScene {
   lights?: LightSource[];
   /** Depth-scale clamp: sprites shrink toward `min` (far/up), grow to `max` (near/down). */
   depthScale?: { min: number; max: number };
-  regions: SceneRegion[];
+  /** Emoji shown in the Travel menu. */
+  emoji?: string;
+  /** Legacy single-big-map region layout (unused by the per-scene pixel model). */
+  regions?: SceneRegion[];
   hotspots: SceneHotspot[];
 }
 

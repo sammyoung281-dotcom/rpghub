@@ -16,6 +16,7 @@ export default function App() {
   const setMapOpen = useRealmStore((s) => s.setMapOpen);
   const setCouncilOpen = useRealmStore((s) => s.setCouncilOpen);
   const setDecreeOpen = useRealmStore((s) => s.setDecreeOpen);
+  const activeSceneId = useRealmStore((s) => s.activeSceneId);
 
   // ── Seed the realm from the AgentEngine ─────────────────────────────────────
   // Ask each character's (mock) brain for an opening quest. Each offered quest
@@ -34,7 +35,7 @@ export default function App() {
 
   return (
     <>
-      <SceneStage />
+      <SceneStage key={activeSceneId} />
       <NeedsYouNow />
       <DialogueBox />
       <Journal />

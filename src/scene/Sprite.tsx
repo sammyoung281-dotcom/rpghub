@@ -15,9 +15,12 @@ import { depthScaleAt, elevationAt, lightTint } from "./depth";
  *  - nearby lights (crystals/torches) add a coloured rim glow.
  */
 
-const DRAW = 4;
-const SPEED = 95;
-const PAUSE = 0.7;
+// Scenes are authored in local 480×270 px and scaled up by the camera, so the
+// 48px sheet frame is drawn 1:1 in scene space (DRAW=1) and wander speed is in
+// that small space too.
+const DRAW = 1;
+const SPEED = 24; // local px/sec
+const PAUSE = 0.9;
 
 export default function Sprite({
   spot,
@@ -175,17 +178,15 @@ export default function Sprite({
       )}
 
       {marker && <span className="sprite-ring" style={{ borderColor: URGENCY_COLOR[marker] }} />}
-      <span className="sprite-name" style={{ top: -224 + off.y, marginLeft: off.x }}>
-        {spot.name}
-      </span>
-      {marker && (
-        <span
-          className={"sprite-marker" + (needs ? " urgent" : "")}
-          style={{ background: URGENCY_COLOR[marker], top: -256 + off.y, marginLeft: off.x }}
-        >
-          {needs ? "!" : ""}
-        </span>
-      )}
+      {/* labels counter-scale (1/zoom) so they stay screen-readable at any zoom */}
+      <div className="sprite-label" style={{ top: -42 + off.y, marginLeft: off.x }}>
+        {marker && (
+          <span className={"sprite-marker" + (needs ? " urgent" : "")} style={{ background: URGENCY_COLOR[marker] }}>
+            {needs ? "!" : ""}
+          </span>
+        )}
+        <span className="sprite-name">{spot.name}</span>
+      </div>
     </div>
   );
 }

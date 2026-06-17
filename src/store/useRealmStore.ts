@@ -52,6 +52,10 @@ interface RealmState extends SavedRealm {
   exportRealm: () => string;
   importRealm: (json: string) => boolean;
 
+  // ── Travel (which place you're in) ──
+  activeSceneId: string;
+  setActiveScene: (id: string) => void;
+
   // ── UI panels ──
   journalOpen: boolean;
   setJournalOpen: (open: boolean) => void;
@@ -157,6 +161,9 @@ export const useRealmStore = create<RealmState>()(
           return false;
         }
       },
+
+      activeSceneId: "keep",
+      setActiveScene: (id) => set({ activeSceneId: id }),
 
       journalOpen: false,
       setJournalOpen: (open) => set({ journalOpen: open }),

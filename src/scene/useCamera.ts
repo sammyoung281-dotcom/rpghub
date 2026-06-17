@@ -6,12 +6,9 @@ export interface Camera {
   zoom: number;
 }
 
-const MAX_ZOOM = 1.8;
-const PAN_SPEED = 900; // px/sec at zoom 1 (keyboard)
-// at fullest zoom-out the scene fills ~82% of the limiting axis, leaving an
-// atmosphere frame around the whole realm (so you can "see the background").
-const FRAME = 0.82;
-const OVERSCAN = 130; // px of atmosphere you can nudge the view past the edges
+const MAX_ZOOM = 3.5;
+const PAN_SPEED = 220; // px/sec at zoom 1 (keyboard) — scenes are small (480×270)
+const OVERSCAN = 14; // px you can nudge the view past the scene edges
 
 interface Opts {
   sceneW: number;
@@ -44,14 +41,13 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
     return { w: el ? el.clientWidth : window.innerWidth, h: el ? el.clientHeight : window.innerHeight };
   };
 
-  // zoom at which the WHOLE scene just fits the viewport (limiting axis)
-  const containZoom = () => {
+  // smallest zoom at which the scene still fully COVERS the viewport (framed
+  // interior — no zoom-out-to-void). You can zoom in from here.
+  const coverZoom = () => {
     const { w, h } = vp();
-    return Math.min(w / sceneW, h / sceneH);
+    return Math.max(w / sceneW, h / sceneH);
   };
-  // fullest zoom-out leaves an atmosphere frame around the whole realm
-  const minZoom = () => containZoom() * FRAME;
-  const clampZoom = (z: number) => Math.min(Math.max(z, minZoom()), MAX_ZOOM);
+  const clampZoom = (z: number) => Math.min(Math.max(z, coverZoom()), MAX_ZOOM);
 
   // keep the camera centre near the scene (a little overscan into atmosphere).
   // when an axis is fully covered, lock to its centre.
@@ -102,8 +98,8 @@ export function useCamera({ sceneW, sceneH, viewportRef, focusTarget, onFocusCon
     window.addEventListener("mouseup", mup);
     window.addEventListener("resize", onResize);
 
-    // open on a whole-realm overview
-    setCam((c) => clamp({ ...c, zoom: containZoom() }));
+    // open framed to fill the viewport
+    setCam((c) => clamp({ ...c, zoom: coverZoom() }));
 
     return () => {
       window.removeEventListener("keydown", down);

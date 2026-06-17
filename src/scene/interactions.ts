@@ -1,19 +1,20 @@
 import { useRealmStore } from "../store/useRealmStore";
 import { MOCK_DIALOGUES } from "../data/mockDialogues";
 import { getCharacter } from "../data/characters";
-import type { RealmScene } from "../types";
+import { sceneOfCharacter } from "../data/scenes";
 
 /**
- * Approach a character: glide the camera to them, then open the right dialogue.
+ * Approach a character: travel to the scene they live in, then open the right
+ * dialogue.
  * - If they have a pending quest proposal → offer it with Accept / Decline.
  *   Accepting writes it to the Journal (in_progress); declining drops it.
  * - Otherwise → their scripted greeting/report.
  * Shared by hotspot clicks and the scroll's "Attend ▸" so both feel identical.
  */
-export function summonCharacter(scene: RealmScene, characterId: string) {
+export function summonCharacter(characterId: string) {
   const store = useRealmStore.getState();
-  const spot = scene.hotspots.find((h) => h.characterId === characterId);
-  if (spot) store.focusCamera({ x: spot.x, y: spot.y - 80, zoom: 1.15 });
+  const sceneId = sceneOfCharacter(characterId);
+  if (sceneId && sceneId !== store.activeSceneId) store.setActiveScene(sceneId);
 
   const proposal = store.proposals.find((p) => p.ownerId === characterId);
   if (proposal) {
