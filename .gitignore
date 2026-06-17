@@ -2,3 +2,6 @@ node_modules
 dist
 *.local
 .DS_Store
+
+# raw source art / working exports (the game uses public/sprites + public/scenes)
+RPG Sprites Version 2/

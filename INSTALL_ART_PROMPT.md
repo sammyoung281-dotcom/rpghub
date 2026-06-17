@@ -4,13 +4,15 @@ The real art is already in `public/`. This task is **wiring + tuning**, not new 
 
 ## What's on disk (already there)
 
-**Sprites — `public/sprites/`** (overwrote the old placeholders):
+**Sprites — `public/sprites/`** (final, green-screened + standardised):
 `elder.png, brannock.png, tasha.png, edmund.png, wren.png, lyra.png`
-- Each sheet is **1260 × 848 px**, a uniform **6 columns × 4 rows** grid.
-- **frameW = 210, frameH = 212.**
-- Rows (top→bottom) = facing: **0 Down, 1 Left, 2 Right, 3 Up.**
+- Each sheet is **2526 × 1696 px**, a uniform **6 columns × 4 rows** grid.
+- **frameW = 421, frameH = 424.**
+- Rows (top→bottom) = facing: **0 Down, 1 Left, 2 Right, 3 Up.** (Right is a mirror of Left.)
 - Cols (left→right) = frame: **0 Idle, 1–4 Walk cycle, 5 Work/action pose.**
+- All six share this exact layout, so the slicer maps every character identically.
 - These are **painterly, NOT pixel art** → do **NOT** apply `image-rendering: pixelated` to sprites. Render them smoothly (bilinear). The character fills most of the cell; anchor each sprite by its **feet = bottom-centre of the cell**.
+- Note: `brannock` has no side art, so his Left/Right rows face forward — fine, just don't expect a side profile for him.
 
 **Scenes — `public/scenes/`** (flat single paintings, **1376 × 768 px**, fully opaque):
 `realm.png` (the overworld map) · `keep_bg.png` · `merchants_bg.png` · `ledger_bg.png` · `hearth_bg.png` · `scholars_bg.png`

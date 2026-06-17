@@ -16,8 +16,9 @@ const H = 768;
 
 const SHEET = (src: string): SpriteSheet => ({
   src,
-  frameW: 210,
-  frameH: 212,
+  // final art: 2526×1696 sheets, 6×4 grid → 421×424 per cell
+  frameW: 421,
+  frameH: 424,
   rows: { down: 0, left: 1, right: 2, up: 3 },
   cols: 6,
   idleFrame: 0,
