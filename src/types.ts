@@ -66,6 +66,12 @@ export interface Character {
 
 export type QuestStatus = "not_started" | "in_progress" | "blocked" | "done";
 
+/**
+ * A unit of work in the realm. Phase 2 turned this into a proper task-graph node:
+ * it has an assigner, dependencies and a work log, so agents can hand work to each
+ * other. `visibility` decides whether the Chairman ever sees it — "internal" work
+ * (an agent's own sub-steps) stays off the Journal so it doesn't become noise.
+ */
 export interface Quest {
   id: QuestId;
   title: string;
@@ -76,6 +82,22 @@ export interface Quest {
   status: QuestStatus;
   createdAt: number;
   sealedAt?: number; // when completed (drives the wax SEAL)
+
+  // ── task-graph fields (Phase 2) ──
+  /** Who handed this over. "chairman" = decreed by you. */
+  assignedBy?: CharacterId | "chairman";
+  /** Cannot start until these are done — this is what makes handoffs possible. */
+  dependsOn?: QuestId[];
+  /** Ties the whole conversation about this task together in the Dispatches log. */
+  threadId?: string;
+  /** "surfaced" appears in the Journal / on the scroll; "internal" is agent-only. */
+  visibility?: "surfaced" | "internal";
+  /** 0–100. Mock agents step it; a real agent sets it from its own judgement. */
+  progress?: number;
+  /** Why it's blocked (shown on the scroll when it needs you). */
+  blockedReason?: string;
+  /** Append-only work log — one short note per tick. */
+  log?: { tick: number; by: CharacterId; note: string }[];
 }
 
 // ── Dialogue: the reusable parchment box backbone ────────────────────────────
@@ -224,6 +246,88 @@ export interface RealmScene {
   /** Legacy single-big-map region layout (unused by the per-scene pixel model). */
   regions?: SceneRegion[];
   hotspots: SceneHotspot[];
+}
+
+// ── The Ravenry: inter-agent messaging ───────────────────────────────────────
+// Agents NEVER call each other directly. They post messages and the bus routes
+// them along the reporting chain. That indirection buys three things: a durable,
+// replayable history; no infinite mutual recursion; and a natural visual (a
+// message in flight is a courier crossing the map).
+
+export type MessageKind =
+  | "request" // asking someone to take work on
+  | "response" // answering a request
+  | "escalation" // pushing a blocker up the chain
+  | "report" // status roll-up, always upward
+  | "permission" // petitioning the Chairman to authorise an action
+  | "broadcast"; // guild-wide notice
+
+/** Anyone a message can be addressed to. "chairman" is you. */
+export type Recipient = CharacterId | "chairman";
+
+export interface Message {
+  id: string;
+  /** Groups every message about one task/decision into a single thread. */
+  threadId: string;
+  tick: number;
+  at: number; // wall clock, for display
+  from: CharacterId;
+  to: Recipient;
+  kind: MessageKind;
+  subject: string;
+  /** ≤ 2 sentences. ADHD rule #2 applies to agent chatter too. */
+  body: string;
+  taskId?: QuestId;
+  /** Set once the recipient has consumed it in a tick. */
+  read: boolean;
+  /** How many hops up the chain this has already taken (depth guard). */
+  hops?: number;
+}
+
+/** A message the bus refused to deliver, kept so routing bugs are visible. */
+export interface Bounce {
+  id: string;
+  tick: number;
+  from: CharacterId;
+  to: Recipient;
+  subject: string;
+  reason: string;
+}
+
+export type Risk = "low" | "medium" | "high";
+
+/**
+ * An agent asking the Chairman to authorise something. Driven by the Authority
+ * dial: Petitioners raise one for every action, Trusted only for risky ones,
+ * Stewards only for things outside their domain.
+ */
+export interface Permission {
+  id: string;
+  tick: number;
+  characterId: CharacterId;
+  taskId?: QuestId;
+  /** The concrete thing they want to do. One line. */
+  action: string;
+  /** Why they want to. One line. */
+  rationale: string;
+  risk: Risk;
+  status: "pending" | "approved" | "denied";
+  decidedAt?: number;
+}
+
+/** What one turn of the world clock actually did — shown after "Advance the Realm". */
+export interface TickSummary {
+  tick: number;
+  at: number;
+  messagesSent: number;
+  tasksCreated: number;
+  tasksCompleted: number;
+  permissionsRaised: number;
+  bounced: number;
+  /** Short human lines describing the tick, for the log. */
+  headlines: string[];
+  /** Set when a guardrail stopped the tick early. */
+  haltedBy?: string;
 }
 
 // ── Needs You Now: the persistent proclamation scroll ────────────────────────
