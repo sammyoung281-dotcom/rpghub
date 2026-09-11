@@ -7,30 +7,31 @@ import RealmMap from "./ui/RealmMap";
 import Council from "./ui/Council";
 import DecreeQuill from "./ui/DecreeQuill";
 import QuestJuice from "./ui/QuestJuice";
+import TickControl from "./ui/TickControl";
+import Dispatches from "./ui/Dispatches";
 import { useRealmStore } from "./store/useRealmStore";
-import { CHARACTER_LIST } from "./data/characters";
-import { agent } from "./agent";
+import { runTick, syncAutoTick } from "./agent/orchestrator";
 
 export default function App() {
   const setJournalOpen = useRealmStore((s) => s.setJournalOpen);
   const setMapOpen = useRealmStore((s) => s.setMapOpen);
   const setCouncilOpen = useRealmStore((s) => s.setCouncilOpen);
   const setDecreeOpen = useRealmStore((s) => s.setDecreeOpen);
+  const setDispatchesOpen = useRealmStore((s) => s.setDispatchesOpen);
   const activeSceneId = useRealmStore((s) => s.activeSceneId);
   const setActiveScene = useRealmStore((s) => s.setActiveScene);
 
-  // ── Seed the realm from the AgentEngine ─────────────────────────────────────
-  // Ask each character's (mock) brain for an opening quest. Each offered quest
-  // becomes a proposal (→ a "!" over that character + a derived Needs You Now
-  // entry). Skipped if a saved realm was just rehydrated from localStorage.
-  // Phase 2 swaps `agent` for the real Claude engine; this loop is unchanged.
+  // ── Wake the realm ──────────────────────────────────────────────────────────
+  // A fresh realm gets ONE tick so it isn't an empty stage — the guild leaders
+  // commission their first work and the first proposals land. A rehydrated realm
+  // is left exactly as you left it. Everything after this is on your say-so:
+  // the "Advance the Realm" button, or the opt-in timer.
   useEffect(() => {
     const store = useRealmStore.getState();
-    if (store.proposals.length || store.quests.length) return; // don't re-seed a saved realm
-    for (const char of CHARACTER_LIST) {
-      const quest = agent.proposeQuest(char);
-      if (quest) store.offerQuest(quest);
+    if (!store.proposals.length && !store.quests.length && store.tick === 0) {
+      void runTick();
     }
+    syncAutoTick();
   }, []);
   // ───────────────────────────────────────────────────────────────────────────
 
@@ -49,11 +50,17 @@ export default function App() {
       <Council />
       <DecreeQuill />
       <QuestJuice />
+      <Dispatches />
+      <TickControl />
 
       <div className="tool-rail">
         <button className="tome-btn" onClick={() => setDecreeOpen(true)} title="Decree a new task">
           🪶
           <span>Decree</span>
+        </button>
+        <button className="tome-btn" onClick={() => setDispatchesOpen(true)} title="Read the ravens">
+          🕊
+          <span>Dispatches</span>
         </button>
         <button className="tome-btn" onClick={() => setCouncilOpen(true)} title="Hold council">
           ⚖️
@@ -69,7 +76,7 @@ export default function App() {
         </button>
       </div>
 
-      <div className="hint">Drag/WASD to roam · scroll to zoom · click a character · 🪶 decree · ⚖️ council</div>
+      <div className="hint">Drag/WASD to roam · scroll to zoom · click a character · 🪶 decree · 🕊 dispatches</div>
     </>
   );
 }

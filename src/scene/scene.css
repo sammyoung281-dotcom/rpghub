@@ -352,3 +352,41 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
 }
+
+/* ── Couriers: messages in flight across the map ──────────────────────────── */
+.courier {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  /* counter-scale so the bird stays readable at any zoom */
+  transform-origin: center bottom;
+}
+
+.courier-bird {
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6));
+  animation: courier-flap 0.42s steps(2, end) infinite;
+}
+
+@keyframes courier-flap {
+  0%   { transform: translateY(0) scaleY(1); }
+  50%  { transform: translateY(-3px) scaleY(0.9); }
+  100% { transform: translateY(0) scaleY(1); }
+}
+
+.courier-tag {
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 5px;
+  background: rgba(20, 16, 11, 0.88);
+  border: 1px solid;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}

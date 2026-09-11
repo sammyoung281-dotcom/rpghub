@@ -1,0 +1,128 @@
+.tick-bar {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #2a2118, #1b150f);
+  border: 1px solid #6b5638;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  font-family: Georgia, "Times New Roman", serif;
+  color: #e9dcc0;
+}
+.tick-bar.paused {
+  border-color: #8a3a2f;
+  box-shadow: 0 6px 24px rgba(140, 40, 30, 0.4);
+}
+
+.tick-go {
+  font: inherit;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  padding: 8px 16px;
+  border-radius: 7px;
+  cursor: pointer;
+  color: #1b150f;
+  background: linear-gradient(180deg, #e7c877, #c9a24d);
+  border: 1px solid #8a6f3c;
+  font-weight: 700;
+}
+.tick-go:hover:not(:disabled) {
+  background: linear-gradient(180deg, #f3d98f, #d6ae56);
+}
+.tick-go:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tick-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.2;
+}
+.tick-count {
+  font-size: 12px;
+  opacity: 0.75;
+}
+.tick-last {
+  font: inherit;
+  font-size: 12px;
+  background: none;
+  border: none;
+  color: #d8c79b;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.tick-last:hover {
+  color: #f3e2b4;
+  text-decoration: underline;
+}
+
+.tick-auto {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  opacity: 0.85;
+  cursor: pointer;
+}
+.tick-auto select {
+  font: inherit;
+  font-size: 11px;
+  background: #17120d;
+  color: #e9dcc0;
+  border: 1px solid #6b5638;
+  border-radius: 4px;
+  padding: 1px 3px;
+}
+
+.tick-pause {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #241c14;
+  color: #e9dcc0;
+  border: 1px solid #6b5638;
+}
+.tick-pause.on {
+  background: #6b241c;
+  border-color: #b4503f;
+}
+
+.tick-flash {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 10px;
+  white-space: nowrap;
+  max-width: 70vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 7px 13px;
+  border-radius: 7px;
+  background: #1b150f;
+  border: 1px solid #6b5638;
+  font-size: 13px;
+  color: #f0e2bd;
+  animation: tick-rise 0.28s ease-out;
+}
+@keyframes tick-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

@@ -5,6 +5,7 @@ import { useCamera } from "./useCamera";
 import Sprite from "./Sprite";
 import Motes from "./Motes";
 import PixelPlaceholder from "./PixelPlaceholder";
+import Couriers from "./Couriers";
 import { openCharacterDialogue } from "./interactions";
 import "./scene.css";
 
@@ -132,6 +133,8 @@ export default function SceneStage() {
               sceneH={scene.height}
             />
           ))}
+          {/* every message the agents send, drawn flying between them */}
+          <Couriers scene={scene} />
         </div>
 
         {lights.map((l, i) => (
