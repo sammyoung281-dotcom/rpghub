@@ -22,6 +22,12 @@ import type { CharacterId, MessageKind, Recipient } from "../types";
 
 export const CHAIRMAN: Recipient = "chairman";
 
+/**
+ * The Elder's "we've run out of work" notice. Lives here rather than in the
+ * orchestrator so the engine can reference it without a circular import.
+ */
+export const IDLE_SUBJECT = "The realm has run out of work";
+
 /** The Elder is the only character with no one above them. */
 export const ELDER_ID: CharacterId = "elder";
 

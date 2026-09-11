@@ -12,6 +12,7 @@ import {
   type Recipient,
   type TickSummary,
   type Urgency,
+  type Verification,
 } from "../types";
 import { getCharacter } from "../data/characters";
 
@@ -29,6 +30,7 @@ interface SavedRealm {
   authorityOverrides: Record<CharacterId, Authority>;
   messages: Message[];
   permissions: Permission[];
+  verifications: Verification[];
   tick: number;
 }
 
@@ -78,9 +80,17 @@ interface RealmState extends SavedRealm {
   /** True when every dependency of this task is done. */
   isUnblocked: (taskId: QuestId) => boolean;
 
-  // ── Permissions (the Authority gate) ──
+  // ── Permissions (routed by the risk matrix) ──
   raisePermission: (p: Permission) => void;
   decidePermission: (id: string, approved: boolean) => void;
+  /** Only the ones the matrix says you must rule on personally. */
+  sovereignDecisions: () => Permission[];
+  /** The batch waiting for a council session. */
+  councilDocket: () => Permission[];
+
+  // ── Peer verification (agents checking each other) ──
+  requestVerification: (v: Verification) => void;
+  resolveVerification: (id: string, endorsed: boolean, note: string) => void;
 
   // ── The world clock ──
   advancing: boolean;
@@ -132,6 +142,7 @@ export const useRealmStore = create<RealmState>()(
       authorityOverrides: {},
       messages: [],
       permissions: [],
+      verifications: [],
       tick: 0,
 
       activeDialogue: null,
@@ -264,6 +275,27 @@ export const useRealmStore = create<RealmState>()(
               : p
           ),
         })),
+      sovereignDecisions: () =>
+        get().permissions.filter((p) => p.status === "pending" && (p.route ?? "sovereign") === "sovereign"),
+      councilDocket: () =>
+        get().permissions.filter((p) => p.status === "pending" && p.route === "council"),
+
+      requestVerification: (v) =>
+        set((s) =>
+          s.verifications.some(
+            (x) => x.status === "pending" && x.taskId === v.taskId && x.requesterId === v.requesterId
+          )
+            ? s
+            : { verifications: [...s.verifications, v] }
+        ),
+      resolveVerification: (id, endorsed, note) =>
+        set((s) => ({
+          verifications: s.verifications.map((v) =>
+            v.id === id
+              ? { ...v, status: endorsed ? ("endorsed" as const) : ("objected" as const), note }
+              : v
+          ),
+        })),
 
       // ── World clock ──
       advancing: false,
@@ -301,6 +333,7 @@ export const useRealmStore = create<RealmState>()(
             authorityOverrides: data.authorityOverrides ?? {},
             messages: data.messages ?? [],
             permissions: data.permissions ?? [],
+            verifications: data.verifications ?? [],
             tick: data.tick ?? 0,
           });
           return true;
@@ -314,6 +347,7 @@ export const useRealmStore = create<RealmState>()(
           quests: [],
           messages: [],
           permissions: [],
+          verifications: [],
           bounces: [],
           tickLog: [],
           tick: 0,
@@ -335,6 +369,10 @@ export const useRealmStore = create<RealmState>()(
     }),
     {
       name: "realm-of-endeavour",
+      // Bumped when the saved shape changes meaningfully. An old save is
+      // discarded rather than migrated — it's all mock data, and a stale realm
+      // (exhausted initiatives, permissions with no risk routing) looks broken.
+      version: 3,
       // only persist the durable realm state, never transient UI
       partialize: (s): SavedRealm => ({
         proposals: s.proposals,
@@ -342,6 +380,7 @@ export const useRealmStore = create<RealmState>()(
         authorityOverrides: s.authorityOverrides,
         messages: s.messages,
         permissions: s.permissions,
+        verifications: s.verifications,
         tick: s.tick,
       }),
     }

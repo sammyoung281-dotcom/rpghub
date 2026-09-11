@@ -1,7 +1,8 @@
 import { useRealmStore } from "../store/useRealmStore";
 import { CHARACTER_LIST, getCharacter } from "../data/characters";
 import { agent } from "./index";
-import { canSend, isElder, isGuildLeader, subordinatesOf } from "./bus";
+import { IDLE_SUBJECT, canSend, isElder, isGuildLeader, subordinatesOf } from "./bus";
+import { explainRoute, routeFor } from "./risk";
 import type { AgentAction, AgentContext } from "./AgentEngine";
 import type { CharacterId, Message, Quest, TickSummary } from "../types";
 
@@ -35,6 +36,7 @@ export const LIMITS = {
 
 let seq = 0;
 const uid = (p: string) => `${p}-${Date.now().toString(36)}-${seq++}`;
+
 
 interface TickBudget {
   messages: number;
@@ -152,6 +154,14 @@ function buildContext(
     subordinates: subordinatesOf(charId),
     authority: s.authorityOf(charId),
     permissions: s.permissions.filter((p) => p.characterId === charId),
+    verifications: s.verifications.filter(
+      (v) => v.requesterId === charId || v.verifierId === charId
+    ),
+    realmIdle:
+      !s.quests.some((q) => q.status === "in_progress" || q.status === "blocked") &&
+      s.proposals.length === 0 &&
+      !s.permissions.some((p) => p.status === "pending"),
+    realmIdleAnnounced: s.messages.some((m) => m.subject === IDLE_SUBJECT),
     now: Date.now(),
   };
 }
@@ -307,8 +317,15 @@ function applyActions(
       }
 
       case "permission": {
-        const pending = useRealmStore.getState().permissions.filter((p) => p.status === "pending");
-        if (pending.length >= LIMITS.maxPendingPermissions) break;
+        // THE MATRIX DECIDES, not the agent. It supplied facts; we route.
+        const route = routeFor(a.factors);
+        const pendingSovereign = useRealmStore
+          .getState()
+          .permissions.filter((p) => p.status === "pending" && (p.route ?? "sovereign") === "sovereign");
+        // Only interruptions are capped. The council docket may grow freely —
+        // it's a queue you choose to open, not a thing shouting at you.
+        if (route === "sovereign" && pendingSovereign.length >= LIMITS.maxPendingPermissions) break;
+
         store.raisePermission({
           id: uid("p"),
           tick,
@@ -316,11 +333,72 @@ function applyActions(
           taskId: a.taskId,
           action: a.action,
           rationale: a.rationale,
-          risk: a.risk,
+          risk: a.factors.reversibility === 3 || (a.factors.cost ?? 0) > 25 ? "high" : a.factors.impact >= 3 ? "medium" : "low",
+          factors: a.factors,
+          route,
+          because: explainRoute(a.factors),
           status: "pending",
         });
         budget.permissions += 1;
-        budget.headlines.push(`🔑 ${getCharacter(fromId)?.name} asks leave: ${a.action}`);
+        if (route === "sovereign") {
+          budget.headlines.push(`🔑 ${getCharacter(fromId)?.name} asks leave: ${a.action}`);
+        } else {
+          budget.headlines.push(`⚖️ For the council: ${a.action}`);
+        }
+        break;
+      }
+
+      case "verify.request": {
+        store.requestVerification({
+          id: uid("v"),
+          tick,
+          taskId: a.taskId,
+          requesterId: fromId,
+          verifierId: a.verifierId,
+          action: a.action,
+          status: "pending",
+        });
+        // The check travels as a real message so it shows up in Dispatches.
+        const verdict = canSend(fromId, a.verifierId, "verify");
+        if (verdict.ok) {
+          store.addMessage({
+            id: uid("m"),
+            threadId: uid("t"),
+            tick,
+            at: Date.now(),
+            from: fromId,
+            to: a.verifierId,
+            kind: "verify",
+            subject: `Your eyes on this: ${a.action}`,
+            body: "I'd not proceed on my own word alone. Check it and say.",
+            taskId: a.taskId,
+            read: false,
+          });
+          budget.messages += 1;
+        }
+        break;
+      }
+
+      case "verify.resolve": {
+        store.resolveVerification(a.verificationId, a.endorsed, a.note);
+        const v = useRealmStore.getState().verifications.find((x) => x.id === a.verificationId);
+        if (v) {
+          store.addMessage({
+            id: uid("m"),
+            threadId: uid("t"),
+            tick,
+            at: Date.now(),
+            from: fromId,
+            to: v.requesterId,
+            kind: "verify",
+            subject: `${a.endorsed ? "Endorsed" : "Objection"}: ${v.action}`,
+            body: a.note,
+            taskId: v.taskId,
+            read: false,
+          });
+          budget.messages += 1;
+          if (!a.endorsed) budget.headlines.push(`⚠ ${getCharacter(fromId)?.name} objected: ${v.action}`);
+        }
         break;
       }
 

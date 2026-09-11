@@ -9,7 +9,8 @@ import type {
   Quest,
   QuestId,
   Recipient,
-  Risk,
+  RiskFactors,
+  Verification,
 } from "../types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,6 +59,12 @@ export interface AgentContext {
    * instant you grant something, forever.
    */
   permissions: Permission[];
+  /** Sign-offs involving them, as requester or as verifier. */
+  verifications: Verification[];
+  /** True when nothing anywhere in the realm is in progress or waiting. */
+  realmIdle: boolean;
+  /** True once the Elder has already told the Chairman the realm is idle. */
+  realmIdleAnnounced: boolean;
   now: number;
 }
 
@@ -117,12 +124,34 @@ export interface TaskOfferAction {
   threadId?: string;
 }
 
+/**
+ * Ask for authorisation. The agent supplies the FACTS about the action (impact,
+ * reversibility, cost); the risk matrix — not the agent — decides whether that
+ * means routine, peer-verified, council or Chairman. An agent cannot talk its
+ * way into a lower band.
+ */
 export interface PermissionAction {
   t: "permission";
   action: string;
   rationale: string;
-  risk: Risk;
+  factors: RiskFactors;
   taskId?: QuestId;
+}
+
+/** Ask a named peer to sign off before proceeding. */
+export interface VerifyRequestAction {
+  t: "verify.request";
+  taskId: QuestId;
+  verifierId: CharacterId;
+  action: string;
+}
+
+/** Answer someone else's request for sign-off. */
+export interface VerifyResolveAction {
+  t: "verify.resolve";
+  verificationId: string;
+  endorsed: boolean;
+  note: string;
 }
 
 /** Walk somewhere in the scene. Purely cosmetic; the world layer consumes it. */
@@ -139,6 +168,8 @@ export type AgentAction =
   | TaskCompleteAction
   | TaskOfferAction
   | PermissionAction
+  | VerifyRequestAction
+  | VerifyResolveAction
   | MoveAction;
 
 // ── Reporting ────────────────────────────────────────────────────────────────
@@ -160,6 +191,7 @@ export interface RealmSnapshot {
   proposals: Quest[];
   permissions: Permission[];
   messages: Message[];
+  verifications?: Verification[];
 }
 
 export interface AgentEngine {

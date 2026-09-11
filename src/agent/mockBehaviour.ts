@@ -1,4 +1,4 @@
-import type { CharacterId, GuildId, Risk } from "../types";
+import type { CharacterId, GuildId, RiskFactors } from "../types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scripted content for the mock brains. Everything characterful lives here so
@@ -15,9 +15,13 @@ export interface Initiative {
   chunks: string[];
   /** One note per tick of work. Length defines how long the task takes. */
   steps: string[];
-  /** Step index at which the doer must petition the Chairman. */
+  /**
+   * Step index at which this action must be authorised. The agent states the
+   * FACTS (`factors`); the risk matrix decides whether that means a peer
+   * signs off, the council settles it, or the Chairman rules personally.
+   */
   permissionAt?: number;
-  permission?: { action: string; rationale: string; risk: Risk };
+  permission?: { action: string; rationale: string; factors: RiskFactors };
   /** Step index at which the work stalls on something only you can unblock. */
   blockAt?: number;
   blockReason?: string;
@@ -27,6 +31,13 @@ export interface Initiative {
   helpAsk?: string;
   /** Offer it to the Chairman as an accept/decline quest rather than just doing it. */
   offerFirst?: boolean;
+  /**
+   * Title of an earlier initiative in the same guild that must finish first.
+   * Makes the task graph real: the leader links `dependsOn` when commissioning,
+   * and the orchestrator won't let the doer touch it until the dependency seals.
+   * The referenced initiative must appear EARLIER in this array.
+   */
+  dependsOnTitle?: string;
 }
 
 export const INITIATIVES: Initiative[] = [
@@ -45,11 +56,12 @@ export const INITIATIVES: Initiative[] = [
       "Artificer's test pass is underway.",
       "Submitted for review — now we wait on the gatekeepers.",
     ],
+    // £79 out of the treasury → over the sovereign threshold → Sam rules on it.
     permissionAt: 1,
     permission: {
       action: "Spend £79 on the developer account and store assets",
       rationale: "Nothing ships without the account; it pays for itself on the first sale.",
-      risk: "medium",
+      factors: { impact: 3, reversibility: 2, cost: 79, external: true },
     },
     needsHelpAt: 2,
     helpFrom: "lyra",
@@ -69,6 +81,13 @@ export const INITIATIVES: Initiative[] = [
       "Rollout at one part in ten; watching the takings.",
       "Placement the second is clearly ahead. Rolling it wide.",
     ],
+    // Reversible and cheap → a peer signs off, Sam never sees it.
+    permissionAt: 1,
+    permission: {
+      action: "Widen the rollout from a tenth of players to all of them",
+      rationale: "The takings are clearly up and I can roll it back in a moment.",
+      factors: { impact: 2, reversibility: 2 },
+    },
   },
   {
     id: "qa-sweep",
@@ -82,6 +101,94 @@ export const INITIATIVES: Initiative[] = [
       "Crash sweep across the older devices done.",
       "Two faults found in the save system; both mended.",
       "Second pass clean. I'd sign this one off.",
+    ],
+    // Significant but undoable → peer sign-off, not a Chairman interruption.
+    permissionAt: 2,
+    permission: {
+      action: "Declare the build fit to ship",
+      rationale: "It survived everything I threw at it, but I'd rather not be the only one who says so.",
+      factors: { impact: 3, reversibility: 2 },
+    },
+  },
+
+  {
+    id: "review-replies",
+    guildId: "merchants",
+    title: "Answer every review left this fortnight",
+    chunks: [
+      "Nineteen reviews sit unanswered, and four of them are furious.",
+      "A reply costs nothing and turns a one-star into a three.",
+    ],
+    steps: [
+      "All nineteen read and sorted by heat.",
+      "The four angry ones answered first, and gently.",
+      "The rest cleared. Two have already softened their verdict.",
+    ],
+  },
+  {
+    id: "loading-time",
+    guildId: "merchants",
+    title: "Halve the time before a player sees the game",
+    chunks: [
+      "They wait eleven seconds at the door. A good third never come in.",
+      "Give me leave to strip it back and I'll have them playing in five.",
+    ],
+    steps: [
+      "Measured properly — eleven seconds, and most of it is art loading.",
+      "Textures compressed and the opening scene trimmed.",
+      "Down to four. The door no longer turns people away.",
+    ],
+    dependsOnTitle: "Break the build before the players do",
+  },
+  {
+    id: "price-test",
+    guildId: "merchants",
+    title: "Raise the price and see what breaks",
+    chunks: [
+      "We are the cheapest thing on the shelf and it makes us look worthless.",
+      "Let me try a higher price on a slice of new players and count the difference.",
+    ],
+    steps: [
+      "Price test wired to a tenth of new arrivals.",
+      "Takings per player are up a fifth; installs barely moved.",
+      "The higher price holds. That's found money.",
+    ],
+    permissionAt: 1,
+    permission: {
+      action: "Set the higher price for everyone, not just the test slice",
+      rationale: "The numbers hold up and I can put it back in an hour if they don't.",
+      factors: { impact: 3, reversibility: 2 },
+    },
+  },
+  {
+    id: "mailing-list",
+    guildId: "merchants",
+    title: "Gather a hundred souls to the mailing list",
+    chunks: [
+      "Every launch so far has begun by shouting into an empty room.",
+      "Build the list now and the next one begins with an audience.",
+    ],
+    steps: [
+      "Sign-up placed where players finish a level, not where they arrive.",
+      "Forty in the first week, all of them genuine.",
+      "Past a hundred. The next launch starts with a crowd.",
+    ],
+    needsHelpAt: 1,
+    helpFrom: "lyra",
+    helpAsk: "The Scholars know what makes people hand over an address — I'd borrow that.",
+  },
+  {
+    id: "chase-payout",
+    guildId: "merchants",
+    title: "Chase the takings that never arrived",
+    chunks: [
+      "The store's ledger and ours disagree by a fair sum, and the store is winning.",
+      "I'd rather find the fault than shrug at it.",
+    ],
+    steps: [
+      "Both ledgers laid side by side. The gap is real.",
+      "Found it — a currency conversion counted twice.",
+      "Raised with the store. They've conceded and will settle.",
     ],
   },
 
@@ -99,9 +206,13 @@ export const INITIATIVES: Initiative[] = [
       "Peer review passed; approvers notified.",
       "Window booked. The Order stands ready.",
     ],
-    blockAt: 1,
-    blockReason: "The weekend window needs your seal before I can book it.",
-    offerFirst: true,
+    // A live migration cannot be un-run → irreversible → always the Chairman.
+    permissionAt: 1,
+    permission: {
+      action: "Run the ledger migration in the weekend window",
+      rationale: "Once it starts there is no un-running it, and it takes your weekend hours.",
+      factors: { impact: 4, reversibility: 3 },
+    },
   },
   {
     id: "incident-backlog",
@@ -116,6 +227,77 @@ export const INITIATIVES: Initiative[] = [
       "Five closed with proper write-ups.",
       "Two remain, both awaiting other houses. Chased.",
     ],
+    // Weighty but undoable → the council settles it in session.
+    permissionAt: 1,
+    permission: {
+      action: "Close five incidents with formal write-ups against your name",
+      rationale: "Procedure says the record carries your authority, not mine.",
+      factors: { impact: 4, reversibility: 2 },
+    },
+  },
+
+  {
+    id: "runbook",
+    guildId: "ledger",
+    title: "Rewrite the runbook nobody can follow",
+    chunks: [
+      "The runbook assumes you already know the answer, which rather defeats it.",
+      "At three in the morning that is not a document, it is a riddle.",
+    ],
+    steps: [
+      "Walked it start to finish as though I knew nothing. It failed at step four.",
+      "Rewritten so a stranger could follow it, with the decision points called out.",
+      "Two colleagues tested it cold. Both got through without asking me.",
+    ],
+  },
+  {
+    id: "failed-payments",
+    guildId: "ledger",
+    title: "Trace where the failed payments go",
+    chunks: [
+      "A small number fail every day and nobody can say what becomes of them.",
+      "Small numbers compound. I intend to know.",
+    ],
+    steps: [
+      "Followed thirty of them end to end.",
+      "Most retry cleanly. A handful sit in a queue nobody watches.",
+      "Queue now has an owner and an alarm. It will not rot again.",
+    ],
+  },
+  {
+    id: "control-review",
+    guildId: "ledger",
+    title: "Sit the quarterly control review",
+    chunks: [
+      "The review comes whether we are ready or not. I prefer ready.",
+      "Give me a week and there will be nothing for them to find.",
+    ],
+    steps: [
+      "Evidence gathered for every control in scope.",
+      "Two gaps found by my own hand, and closed before anyone asked.",
+      "Reviewed clean. No findings.",
+    ],
+    dependsOnTitle: "Rewrite the runbook nobody can follow",
+  },
+  {
+    id: "retire-manual-recon",
+    guildId: "ledger",
+    title: "Retire the reconciliation done by hand",
+    chunks: [
+      "Someone spends two hours every morning doing what a machine should.",
+      "Those hours are worth more than the machine costs.",
+    ],
+    steps: [
+      "Mapped exactly what the hands do, including the undocumented bits.",
+      "Automated the matching; exceptions still come to a human.",
+      "Two hours a day returned to the team.",
+    ],
+    permissionAt: 2,
+    permission: {
+      action: "Switch off the manual process for good",
+      rationale: "It has run clean in parallel for a fortnight, but once the habit dies it won't come back.",
+      factors: { impact: 3, reversibility: 3 },
+    },
   },
 
   // ── 🛡️ Hearthkeepers — personal admin ─────────────────────────────────────
@@ -132,7 +314,6 @@ export const INITIATIVES: Initiative[] = [
       "Two settled. The third wants a signature.",
       "All square. The hearth is warm again.",
     ],
-    offerFirst: true,
   },
   {
     id: "renewals",
@@ -147,6 +328,57 @@ export const INITIATIVES: Initiative[] = [
       "Two cancelled outright — that's coin back in your purse.",
       "The rest re-priced. Saved you a fair sum this quarter.",
     ],
+    // Small coin, but coin is coin → the council settles it, not you.
+    permissionAt: 1,
+    permission: {
+      action: "Pay £12 in early-exit fees to kill two dead contracts",
+      rationale: "Twelve now saves ninety over the year.",
+      factors: { impact: 2, reversibility: 2, cost: 12 },
+    },
+  },
+
+  {
+    id: "postponed-appointments",
+    guildId: "hearth",
+    title: "Book the appointments you keep postponing",
+    chunks: [
+      "Three of these have been 'next week' since the spring, dear.",
+      "I'll book them. You need only turn up.",
+    ],
+    steps: [
+      "All three chased down and their diaries opened.",
+      "Two booked. The third wants you to pick a day.",
+      "All three in the calendar, with warnings the week before.",
+    ],
+  },
+  {
+    id: "where-coin-goes",
+    guildId: "hearth",
+    title: "Find where the monthly coin actually goes",
+    chunks: [
+      "You earn well and you keep less than you should. Both can be true.",
+      "Let me lay a full month out where you can see it.",
+    ],
+    steps: [
+      "A full month sorted and categorised, nothing rounded away.",
+      "Three habits account for most of the leak. None of them are the ones you'd guess.",
+      "Laid out on one page. Yours to do with as you like — I'll not lecture.",
+    ],
+  },
+  {
+    id: "year-paperwork",
+    guildId: "hearth",
+    title: "Put the paperwork in order before the year turns",
+    chunks: [
+      "The side hustles have made this a real matter now, not a formality.",
+      "Better done in the quiet than in a panic come the deadline.",
+    ],
+    steps: [
+      "Every receipt and statement gathered into one place.",
+      "Income from the guild's ventures separated and totted up.",
+      "Filed and folded. Nothing left to dread.",
+    ],
+    dependsOnTitle: "Find where the monthly coin actually goes",
   },
 
   // ── 📜 Scholars' Tower — self-improvement ─────────────────────────────────
@@ -176,6 +408,66 @@ export const INITIATIVES: Initiative[] = [
       "Three modules cleared in one sitting.",
       "The maths section fought back, but it's beaten.",
       "Finished. And I've a notion of how to apply it.",
+    ],
+  },
+  {
+    id: "day-seven",
+    guildId: "scholars",
+    title: "Learn what brings a player back on day seven",
+    chunks: [
+      "Everyone measures the first day. Almost nobody understands the seventh.",
+      "That is where the money hides, and I mean to go and look.",
+    ],
+    steps: [
+      "Read every study I could find on early retention.",
+      "The pattern is boringly consistent: it's the second session that decides it.",
+      "Written up as five rules the Merchants can actually apply.",
+    ],
+    dependsOnTitle: "Finish the course on retention analytics",
+  },
+  {
+    id: "screenshot-craft",
+    guildId: "scholars",
+    title: "Study the craft of the store screenshot",
+    chunks: [
+      "The first screenshot does more work than the whole description beneath it.",
+      "There are rules to it, and I don't know them yet.",
+    ],
+    steps: [
+      "Pulled apart the top forty listings in our category.",
+      "The good ones all do the same three things in the first image.",
+      "Rules written down and ready to hand over.",
+    ],
+    needsHelpAt: 2,
+    helpFrom: "brannock",
+    helpAsk: "The Merchants should have these rules before their next listing goes up.",
+  },
+  {
+    id: "three-books",
+    guildId: "scholars",
+    title: "Read three books and keep only what matters",
+    chunks: [
+      "I begin far more books than I finish, which you already know.",
+      "Three, properly read, with one page of notes each. Hold me to it.",
+    ],
+    steps: [
+      "First one finished. One page of notes, no more.",
+      "Second done — half of it was padding and I said so.",
+      "Third finished. Three pages that were worth the whole shelf.",
+    ],
+  },
+  {
+    id: "ship-something-weekly",
+    guildId: "scholars",
+    title: "Learn to ship something small every week",
+    chunks: [
+      "The habit matters more than any single thing you make.",
+      "Small and finished beats grand and abandoned, every time.",
+    ],
+    steps: [
+      "Picked four small things, each finishable in an evening.",
+      "Two shipped. Neither was perfect and both were fine.",
+      "Four for four. The habit is taking.",
     ],
   },
 ];

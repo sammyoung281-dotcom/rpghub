@@ -83,6 +83,44 @@
 .nyn-act:hover { filter: brightness(1.08); }
 .nyn-act:active { transform: translateY(1px) scale(0.99); }
 
+/* Decide in place: big primary, quieter refuse, tiny "go and look" escape. */
+.nyn-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nyn-act.nyn-no,
+.nyn-act.nyn-secondary {
+  background: #6b5638;
+  border-color: #47381f;
+  font-weight: 700;
+}
+
+.nyn-attend {
+  flex: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid rgba(120, 96, 60, 0.55);
+  border-radius: 7px;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.nyn-attend:hover { opacity: 1; }
+
+/* When only the council docket is waiting, the scroll should not shout. */
+.nyn-scroll.quiet .nyn-act {
+  background: #6b5638;
+  border-color: #47381f;
+  font-size: 14px;
+  padding: 9px 15px;
+}
+.nyn-scroll.quiet .nyn-title { font-size: 16px; font-weight: 700; }
+
 .nyn-calm .nyn-title { font-weight: 700; opacity: 0.85; }
 
 .nyn-more {

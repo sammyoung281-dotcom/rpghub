@@ -260,6 +260,7 @@ export type MessageKind =
   | "escalation" // pushing a blocker up the chain
   | "report" // status roll-up, always upward
   | "permission" // petitioning the Chairman to authorise an action
+  | "verify" // asking another agent to sign off on an action
   | "broadcast"; // guild-wide notice
 
 /** Anyone a message can be addressed to. "chairman" is you. */
@@ -296,10 +297,34 @@ export interface Bounce {
 
 export type Risk = "low" | "medium" | "high";
 
+// ── The risk matrix: who decides what ────────────────────────────────────────
+
 /**
- * An agent asking the Chairman to authorise something. Driven by the Authority
- * dial: Petitioners raise one for every action, Trusted only for risky ones,
- * Stewards only for things outside their domain.
+ * The two axes an ops risk matrix normally uses, plus the modifiers that matter
+ * in this realm. Scored and routed in `src/agent/risk.ts`.
+ */
+export interface RiskFactors {
+  /** How much it matters if this goes wrong. 1 trivial → 4 severe. */
+  impact: 1 | 2 | 3 | 4;
+  /** How hard it is to undo. 1 easily → 3 not at all. */
+  reversibility: 1 | 2 | 3;
+  /** Money committed, in £. */
+  cost?: number;
+  /** Visible outside — published, sent, posted. */
+  external?: boolean;
+}
+
+/** Who gets to decide, once the matrix has spoken. */
+export type RiskBand =
+  | "routine" // the agent just does it
+  | "verified" // another agent must sign off first
+  | "council" // batched into a council session
+  | "sovereign"; // the Chairman, personally, on its own
+
+/**
+ * An agent asking for authorisation. `route` comes from the risk matrix and
+ * decides where it surfaces: "sovereign" interrupts you on the scroll,
+ * "council" waits quietly on the docket until you hold a session.
  */
 export interface Permission {
   id: string;
@@ -311,8 +336,30 @@ export interface Permission {
   /** Why they want to. One line. */
   rationale: string;
   risk: Risk;
+  factors?: RiskFactors;
+  route?: RiskBand;
+  /** Plain-English reason this landed where it did — never leave routing opaque. */
+  because?: string;
   status: "pending" | "approved" | "denied";
   decidedAt?: number;
+}
+
+/**
+ * One agent checking another's work before it proceeds. This is what keeps
+ * mid-risk actions off the Chairman's scroll entirely — the realm polices
+ * itself for anything that isn't costly or irreversible.
+ */
+export interface Verification {
+  id: string;
+  tick: number;
+  taskId: QuestId;
+  requesterId: CharacterId;
+  verifierId: CharacterId;
+  /** What is being signed off. */
+  action: string;
+  status: "pending" | "endorsed" | "objected";
+  /** The verifier's one-line verdict. */
+  note?: string;
 }
 
 /** What one turn of the world clock actually did — shown after "Advance the Realm". */

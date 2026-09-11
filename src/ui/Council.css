@@ -89,3 +89,64 @@
   border: 2px solid #6b4a2b; background: #c9a24b; color: #2a1d0c; cursor: pointer;
 }
 .cnc-btn:active { transform: translateY(1px); }
+
+/* ── The docket: council-band decisions, one at a time ────────────────────── */
+.cnc-docket {
+  margin: 0 14px 12px;
+  border: 2px solid #8a6f3c;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #f3e7c8, #e6d5ab);
+  overflow: hidden;
+}
+
+.cnc-docket-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 7px 13px;
+  background: #4a3c28;
+  color: #f0e2bd;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.cnc-docket-head em {
+  font-size: 11.5px;
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+.cnc-docket-item { padding: 11px 14px 13px; }
+
+.cnc-docket-who { font-size: 13px; opacity: 0.8; }
+.cnc-docket-action { font-size: 16.5px; font-weight: 700; margin-top: 2px; }
+.cnc-docket-why { font-size: 13.5px; opacity: 0.82; margin-top: 3px; }
+
+.cnc-docket-risk {
+  display: inline-block;
+  margin-top: 7px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #d9c9a2;
+  border: 1px solid #b9a377;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  cursor: help;
+}
+
+.cnc-docket-buttons { display: flex; gap: 9px; margin-top: 11px; }
+
+.cnc-yes, .cnc-no {
+  flex: 1;
+  padding: 11px 0;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  transition: filter 0.12s ease, transform 0.08s ease;
+}
+.cnc-yes { background: #4f8a3d; border: 2px solid #35602a; }
+.cnc-no  { background: #6b5638; border: 2px solid #47381f; }
+.cnc-yes:hover, .cnc-no:hover { filter: brightness(1.08); }
+.cnc-yes:active, .cnc-no:active { transform: translateY(1px); }

@@ -6,7 +6,8 @@ import type {
   Report,
   ReportScope,
 } from "./AgentEngine";
-import { isElder, isGuildLeader, subordinatesOf } from "./bus";
+import { IDLE_SUBJECT, guildRoster, isElder, isGuildLeader, subordinatesOf } from "./bus";
+import { routeFor } from "./risk";
 import { INITIATIVES, VOICE, pick, type Initiative } from "./mockBehaviour";
 import { GUILDS } from "../data/guilds";
 import { getCharacter } from "../data/characters";
@@ -28,6 +29,9 @@ export class MockAgentEngine implements AgentEngine {
 
     // 1 ── read the post
     for (const msg of ctx.inbox) out.push(...this.handleMessage(ctx, msg));
+
+    // 2 ── sign off on anything a colleague asked you to check
+    out.push(...this.verifyForOthers(ctx));
 
     // 2 ── advance the work you already own
     out.push(...this.doWork(ctx));
@@ -147,17 +151,25 @@ export class MockAgentEngine implements AgentEngine {
     const out: AgentAction[] = [];
     const me = ctx.character.id;
 
-    // One task per tick. Agents that multitask produce noise, not throughput.
-    const active = ctx.tasks.find((q) => q.status === "in_progress");
+    // One task per tick — agents that multitask produce noise, not throughput.
+    // But a task stuck awaiting a ruling must not idle the whole character:
+    // walk past anything that's waiting and work the next thing instead.
+    let active: Quest | undefined;
+    let init: Initiative | undefined;
+    let stepIndex = 0;
+
+    for (const candidate of ctx.tasks.filter((q) => q.status === "in_progress")) {
+      const candidateInit = this.initiativeFor(candidate);
+      const candidateStep = candidate.log?.length ?? 0;
+      const gate = this.permissionGate(ctx, candidate, candidateInit, candidateStep);
+      if (gate === "wait") continue; // parked awaiting a decision — try the next
+      if (gate) return [gate]; // needs authorising: raise it and stop here
+      active = candidate;
+      init = candidateInit;
+      stepIndex = candidateStep;
+      break;
+    }
     if (!active) return out;
-
-    const init = this.initiativeFor(active);
-    const stepIndex = active.log?.length ?? 0;
-
-    // — permission gate: does this step need your say-so? —
-    const gate = this.permissionGate(ctx, active, init, stepIndex);
-    if (gate === "wait") return out; // asked and awaiting your ruling — sit still
-    if (gate) return [gate];
 
     // — cross-guild help: addressed to the other guild's leader, which the bus
     //   will refuse and reroute via the Elder. That reroute is the demo. —
@@ -230,12 +242,17 @@ export class MockAgentEngine implements AgentEngine {
   }
 
   /**
-   * The Authority dial, enforced. Petitioners ask before every action; Trusted
-   * ask only on flagged risk; Stewards act and account for it afterwards.
+   * THE GATE. An agent states the facts about what it wants to do; the risk
+   * matrix decides who rules on it. The agent gets no say in its own band.
    *
-   * Returns "wait" when the agent must sit still (asked, not yet ruled on).
-   * Checking DECIDED permissions here — not just pending ones — is what stops
-   * the classic nag loop where granting a request just makes them ask again.
+   *   routine   → proceed, no interruption to anyone
+   *   verified  → a peer must endorse it first (Sam never sees it)
+   *   council   → onto the docket, settled in a council session
+   *   sovereign → Sam, personally — money and irreversible things only
+   *
+   * Returns "wait" when the agent must sit still. Checking DECIDED permissions
+   * here — not just pending ones — is what stops the nag loop where granting a
+   * request immediately makes them ask again.
    */
   private permissionGate(
     ctx: AgentContext,
@@ -243,28 +260,87 @@ export class MockAgentEngine implements AgentEngine {
     init: Initiative | undefined,
     stepIndex: number
   ): AgentAction | "wait" | null {
+    // ── already resolved by the Chairman or the council? ──
     const forThis = ctx.permissions.filter((p) => p.taskId === task.id);
-
-    if (forThis.some((p) => p.status === "pending")) return "wait"; // don't nag
-    if (forThis.some((p) => p.status === "approved")) return null; // leave granted — crack on
+    if (forThis.some((p) => p.status === "pending")) return "wait";
     if (forThis.some((p) => p.status === "denied")) {
-      // Refused. Down tools and make it visible rather than quietly retrying.
       return { t: "task.block", taskId: task.id, reason: "You refused me leave, so I've stopped here." };
     }
+    const granted = forThis.some((p) => p.status === "approved");
 
+    // ── already resolved by a peer? ──
+    const checks = ctx.verifications.filter((v) => v.taskId === task.id && v.requesterId === ctx.character.id);
+    if (checks.some((v) => v.status === "pending")) return "wait";
+    const objected = checks.find((v) => v.status === "objected");
+    if (objected) {
+      // A peer objected. That does NOT mean the agent may proceed anyway — it
+      // escalates to a human decision, which is the whole point of the check.
+      if (!forThis.length) {
+        return {
+          t: "permission",
+          taskId: task.id,
+          action: init?.permission?.action ?? task.title,
+          rationale: `${getCharacter(objected.verifierId)?.name ?? objected.verifierId} objected: ${objected.note ?? "no reason given"}.`,
+          factors: { impact: 4, reversibility: 2 },
+        };
+      }
+      return "wait";
+    }
+    if (checks.some((v) => v.status === "endorsed") || granted) return null; // cleared — crack on
+
+    // ── nothing to authorise at this step? ──
     const flagged = init?.permissionAt === stepIndex && init.permission;
-    const petitioner = ctx.authority === Authority.Petitioner && stepIndex === 0;
-
+    const petitioner = ctx.authority === Authority.Petitioner && stepIndex === 0 && !init?.permission;
     if (!flagged && !petitioner) return null;
-    if (flagged && ctx.authority === Authority.Steward && init!.permission!.risk === "low") return null;
 
     const ask = init?.permission ?? {
       action: `Begin work on "${task.title}"`,
       rationale: "I'm sworn to ask before I act.",
-      risk: "low" as const,
+      factors: { impact: 1, reversibility: 1 } as const,
     };
 
+    // A Steward has earned the benefit of the doubt on the small stuff.
+    const band = routeFor(ask.factors);
+    if (band === "routine") return null;
+    if (band === "verified" && ctx.authority === Authority.Steward) return null;
+
+    if (band === "verified") {
+      const verifier = this.pickVerifier(ctx);
+      if (!verifier) return null; // nobody to ask — proceed rather than stall
+      return { t: "verify.request", taskId: task.id, verifierId: verifier, action: ask.action };
+    }
+
+    // council or sovereign — the orchestrator files it in the right place
     return { t: "permission", taskId: task.id, ...ask };
+  }
+
+  /**
+   * Who checks this agent's work: a peer in their guild, else their leader,
+   * else the Elder. Never themselves — a self-endorsement isn't a check.
+   */
+  private pickVerifier(ctx: AgentContext): string | null {
+    const me = ctx.character.id;
+    const peers = guildRoster(ctx.character.guildId ?? "").filter((id) => id !== me);
+    return peers[0] ?? ctx.character.reportsTo ?? (me === "elder" ? null : "elder");
+  }
+
+  /** Answer sign-off requests addressed to this character. */
+  private verifyForOthers(ctx: AgentContext): AgentAction[] {
+    return ctx.verifications
+      .filter((v) => v.verifierId === ctx.character.id && v.status === "pending")
+      .map((v) => {
+        // The mock verifier is agreeable but not a rubber stamp: it objects to
+        // anything whose owning task has already been blocked once.
+        const troubled = ctx.guildTasks.some((q) => q.id === v.taskId && q.status === "blocked");
+        return {
+          t: "verify.resolve" as const,
+          verificationId: v.id,
+          endorsed: !troubled,
+          note: troubled
+            ? "This one has stumbled once already — I'd not wave it through."
+            : (VOICE[ctx.character.id]?.ack[0] ?? "Checked, and I'm content."),
+        };
+      });
   }
 
   // ── leaders: commission work and keep the guild busy ───────────────────────
@@ -274,11 +350,11 @@ export class MockAgentEngine implements AgentEngine {
     const guildId = ctx.character.guildId;
     if (!guildId) return out;
 
-    // An unanswered offer IS open work — the guild is waiting on the Chairman,
-    // so it counts toward the cap and its title is off the menu. Without this
-    // the leader re-offers the same quest every single tick, forever.
-    const openWork = [...ctx.guildTasks.filter((q) => q.status !== "done"), ...ctx.guildProposals];
-    if (openWork.length >= 2) return out; // guild is busy enough
+    // An unanswered offer keeps its title off the menu (otherwise the leader
+    // re-offers the same quest forever) but must NOT count as the guild being
+    // busy — that made every guild down tools behind the Chairman's inbox.
+    const activeWork = ctx.guildTasks.filter((q) => q.status === "in_progress");
+    if (activeWork.length >= 2) return out; // genuinely busy
 
     const next = this.nextInitiative(guildId, [...ctx.guildTasks, ...ctx.guildProposals]);
     if (!next) return out;
@@ -297,12 +373,24 @@ export class MockAgentEngine implements AgentEngine {
 
     // Routine work: delegate it if you have hands, otherwise roll your sleeves up.
     const doer = subordinatesOf(ctx.character.id)[0] ?? ctx.character.id;
+
+    // Link the task graph. If the prerequisite isn't commissioned yet, hold this
+    // one back rather than creating work that can't start — the leader will
+    // pick it up again once the earlier task exists.
+    let dependsOn: string[] | undefined;
+    if (next.dependsOnTitle) {
+      const prior = ctx.guildTasks.find((q) => q.title === next.dependsOnTitle);
+      if (!prior) return out;
+      if (prior.status !== "done") dependsOn = [prior.id];
+    }
+
     out.push({
       t: "task.create",
       title: next.title,
       chunks: next.chunks,
       guildId,
       assignTo: doer,
+      dependsOn,
       visibility: "internal",
     });
     if (doer !== ctx.character.id) {
@@ -321,6 +409,22 @@ export class MockAgentEngine implements AgentEngine {
   // ── the Elder: realm-wide roll-up ──────────────────────────────────────────
 
   private elderTurn(ctx: AgentContext): AgentAction[] {
+    // If the whole realm has run dry, say so ONCE rather than reporting nothing
+    // forever. An idle realm that stays silent looks broken; an idle realm that
+    // asks for direction is just waiting on you.
+    if (ctx.realmIdle && !ctx.realmIdleAnnounced) {
+      return [
+        {
+          t: "send",
+          to: "chairman",
+          kind: "escalation",
+          subject: IDLE_SUBJECT,
+          body: "Every labour we set ourselves is sealed, Sovereign. Set us a task with the quill and we'll move.",
+        },
+      ];
+    }
+    if (ctx.realmIdle) return [];
+
     // Report to the Chairman every third tick — often enough to feel alive,
     // rare enough not to become wallpaper.
     if (ctx.tick % 3 !== 0) return [];

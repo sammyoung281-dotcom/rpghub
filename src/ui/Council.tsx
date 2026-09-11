@@ -3,6 +3,8 @@ import { useRealmStore } from "../store/useRealmStore";
 import { GUILD_LIST } from "../data/guilds";
 import { CHARACTERS, getCharacter } from "../data/characters";
 import { agent } from "../agent";
+import type { RealmSnapshot } from "../agent/AgentEngine";
+import { BAND_LABEL, describeRisk } from "../agent/risk";
 import { Authority, type CharacterId, type GuildId } from "../types";
 import "./Council.css";
 
@@ -28,25 +30,38 @@ export default function Council() {
   const setOpen = useRealmStore((s) => s.setCouncilOpen);
   const proposals = useRealmStore((s) => s.proposals);
   const quests = useRealmStore((s) => s.quests);
+  const permissions = useRealmStore((s) => s.permissions);
+  const messages = useRealmStore((s) => s.messages);
+  const tick = useRealmStore((s) => s.tick);
   const authorityOf = useRealmStore((s) => s.authorityOf);
   const setAuthority = useRealmStore((s) => s.setAuthority);
   const exportRealm = useRealmStore((s) => s.exportRealm);
   const importRealm = useRealmStore((s) => s.importRealm);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // The snapshot handed to the reporting agents — the only state they may
+  // summarise. Same shape the Claude engine will receive in Phase 3.
+  const snapshot = useMemo<RealmSnapshot>(
+    () => ({ tick, quests, proposals, permissions, messages }),
+    [tick, quests, proposals, permissions, messages]
+  );
+
   const tally = (guildId?: GuildId) => {
     const inGuild = (g: GuildId | "") => (guildId ? g === guildId : true);
     const props = proposals.filter((p) => inGuild(p.guildId));
     const qs = quests.filter((q) => inGuild(q.guildId));
+    const perms = permissions.filter(
+      (p) => p.status === "pending" && inGuild(getCharacter(p.characterId)?.guildId ?? "")
+    );
     return {
-      needsMe: props.length + qs.filter((q) => q.status === "blocked").length,
+      needsMe: props.length + qs.filter((q) => q.status === "blocked").length + perms.length,
       inProgress: qs.filter((q) => q.status === "in_progress").length,
       done: qs.filter((q) => q.status === "done").length,
     };
   };
 
-  const realmTally = useMemo(() => tally(), [proposals, quests]);
-  const elderReport = useMemo(() => agent.report("realm"), [proposals, quests]);
+  const realmTally = useMemo(() => tally(), [proposals, quests, permissions]);
+  const elderReport = useMemo(() => agent.report("realm", snapshot), [snapshot]);
 
   if (!open) return null;
 
@@ -94,6 +109,8 @@ export default function Council() {
           ))}
         </section>
 
+        <CouncilDocket />
+
         {/* Guilds: report + authority dial */}
         <div className="cnc-guilds">
           {GUILD_LIST.map((g) => {
@@ -110,7 +127,7 @@ export default function Council() {
                     <span className="t-green">🟩 {t.done}</span>
                   </span>
                 </div>
-                <p className="cnc-words small">“{agent.report(g.id).chunks[0]}” — {leader?.name}</p>
+                <p className="cnc-words small">“{agent.report(g.id, snapshot).chunks[0]}” — {leader?.name}</p>
                 {members.map((m) => (
                   <AuthorityRow key={m.id} id={m.id} current={authorityOf(m.id)} onSet={setAuthority} />
                 ))}
@@ -124,6 +141,18 @@ export default function Council() {
           <div className="cnc-saveload">
             <button className="cnc-btn" onClick={doExport}>⬇ Export realm</button>
             <button className="cnc-btn" onClick={() => fileInput.current?.click()}>⬆ Import</button>
+            <button
+              className="cnc-btn"
+              onClick={() => {
+                if (confirm("Wipe the realm and begin again from turn one?")) {
+                  useRealmStore.getState().resetRealm();
+                  setOpen(false);
+                }
+              }}
+              title="Start a fresh realm"
+            >
+              ↺ Begin anew
+            </button>
             <input
               ref={fileInput}
               type="file"
@@ -135,6 +164,57 @@ export default function Council() {
         </footer>
       </div>
     </div>
+  );
+}
+
+/**
+ * The docket: everything the risk matrix said the council can settle without
+ * interrupting the Chairman. Presented ONE AT A TIME with two big buttons
+ * (ADHD rule #4), never as a form or a list to work through.
+ */
+function CouncilDocket() {
+  const permissions = useRealmStore((s) => s.permissions);
+  const decide = useRealmStore((s) => s.decidePermission);
+
+  const docket = useMemo(
+    () => permissions.filter((p) => p.status === "pending" && p.route === "council"),
+    [permissions]
+  );
+
+  if (!docket.length) return null;
+
+  const item = docket[0];
+  const who = getCharacter(item.characterId);
+  const remaining = docket.length - 1;
+
+  return (
+    <section className="cnc-docket">
+      <div className="cnc-docket-head">
+        <span>⚖️ In session — {docket.length} to settle</span>
+        {remaining > 0 && <em>{remaining} after this</em>}
+      </div>
+
+      <div className="cnc-docket-item">
+        <div className="cnc-docket-who">
+          {who?.portrait} <strong>{who?.name}</strong> asks:
+        </div>
+        <div className="cnc-docket-action">{item.action}</div>
+        <div className="cnc-docket-why">{item.rationale}</div>
+        {item.factors && (
+          <div className="cnc-docket-risk" title={item.because}>
+            {describeRisk(item.factors)} — {BAND_LABEL[item.route ?? "council"]}
+          </div>
+        )}
+        <div className="cnc-docket-buttons">
+          <button className="cnc-yes" onClick={() => decide(item.id, true)}>
+            Approve
+          </button>
+          <button className="cnc-no" onClick={() => decide(item.id, false)}>
+            Refuse
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
