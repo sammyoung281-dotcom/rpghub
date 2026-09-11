@@ -12,3 +12,6 @@ server/.env
 
 # raw source art / working exports (the game uses public/sprites + public/scenes)
 RPG Sprites Version 2/
+
+# TS incremental build artifact
+tsconfig.tsbuildinfo

@@ -8,9 +8,76 @@ A **local web app** styled as a top-down medieval-fantasy RPG that is secretly t
 ## Who I'm building for
 Sam — runs change/ops at a fintech, building side hustles on the side. **ADHD.** Wants no fluff, honest limits stated early, and the *one thing that needs them now* made unmissable. Keep replies short and chunked.
 
+## Session protocol — this is what makes "pick up any time" work
+
+**At the start of every session, before anything else:**
+1. Read `STATE.md`, `BACKLOG.md`, `DECISIONS.md`.
+2. Give Sam exactly this: **where we are (2 lines max)** and **the single next action**.
+3. Wait for confirm or redirect. Don't start a big change until he's said go.
+
+**At the end of every session, or on "wrap up" / "save state":**
+1. Overwrite `STATE.md` — it's a snapshot, not a log.
+2. Add anything parked to `BACKLOG.md`.
+3. Append any real decision, with the reason, to `DECISIONS.md`.
+4. One line: what he'd need to remember if he disappeared for a month.
+
+**Also update `STATE.md` mid-session** whenever a meaningful chunk finishes. Assume the laptop
+closes without warning.
+
+`STATE.md` sections: Working right now · Half-built · Next action · Known broken / risky.
+
+## Priority: agents first, world second
+**Primary: the automated agent ecosystem** — agents that perceive, decide, act, and persist state
+without Sam driving each step. **Secondary: the world they live in**, which exists to give them
+something to act on and to make the system watchable. The world is not the point on its own.
+**If a session drifts into world-building, art, or polish while core agent behaviour is unproven,
+say so and pull it back.**
+
+## How to work with Sam
+- Conversational. A collaborator, not a ticketing system.
+- **No judgement of his level, ever.** Never flag what he "should" already know. Never quiz him.
+- **Adapt to his level as observed.** Term used correctly ⇒ he knows it. Asks what something means ⇒
+  explain plainly once and move on, no backfilling the topic. Clearly lost ⇒ drop an abstraction
+  level without commenting on it.
+- **One next step per response.** Not three options and a decision tree. Pick the best, give the
+  reason in a line, do it. (Exception: genuine forks — use `AskUserQuestion` with honest trade-offs.
+  Sam engages with those and makes real calls.)
+- Action before context. Result first, explanation after, only if load-bearing.
+- Minimal clarifying questions. Make a reasonable assumption, state it in one line, keep moving.
+  Stop and ask only when getting it wrong would waste real work.
+- No fluff, no ego-stroking, no "great question."
+- If something isn't possible, say so immediately. If you don't know, say so — don't invent.
+- Push back on bad ideas. Directly, briefly, with the reason.
+
+## ADHD guardrails (working style — distinct from the on-screen rules below)
+- Chunk work into pieces that finish inside one session. Nothing that only pays off in three sessions.
+- Track progress visibly: what's done, what's next, nothing else.
+- On a tangent: follow it briefly, then one line back — "parking that in BACKLOG.md — back to X."
+- After a gap, don't recap everything. One-line state, one next action.
+- **Prefer something running and ugly over something designed and theoretical.**
+
+## Technical stance
+- Stack decisions get made when they're forced, not upfront. When a choice is genuinely needed,
+  pick one, give the one-line reason, note it in `DECISIONS.md`.
+- Default to boring, well-documented tools over clever ones.
+- Working locally beats deployed. Deployed beats scalable. Scalable is a later problem.
+- **Every agent capability needs a way for Sam to watch it happen** — logs, console output, a simple
+  UI, or drawn in the world. Invisible agent behaviour is unverifiable and demoralising.
+- Keep the agent layer and the world layer separable. Agents must be testable with the world stubbed out.
+- Mac. Give exact commands to paste, not descriptions of what to do.
+
+## Monetisation reality check
+The long-term aim is revenue. Don't bolt monetisation onto something that doesn't work yet. At a
+milestone worth it, give a blunt read: **product, portfolio piece, or learning exercise?** All three
+are fine answers — just say which.
+
+
 ## Phasing (do not skip ahead)
-- **Phase 1 (current):** the playable world + game loop with **mocked/scripted agents**. No real AI execution, no external integrations.
-- **Phase 2 (later):** real Claude-powered agents + tool integrations, wired in behind the existing `AgentEngine` interface. Don't build this until told.
+- **Phase 1 (done):** the playable world + game loop with mocked/scripted agents.
+- **Phase 2 (done):** the **agentic substrate** — agents that hold tasks, message each other along the org chart, escalate, and ask permission. Still zero API cost: the mock brains drive it. Sam chose **orchestrator–worker (option A)**.
+- **Phase 3 (current, Step 1 in progress):** a Node service + real Claude-backed agents behind the same `AgentEngine` interface. Brief: `PHASE3_PROMPT.md`. Steps 2+ **require an Anthropic API key with billing** — Step 1 (mock-proxy round trip) does not.
+
+**Live status lives in `STATE.md`, not here.** This section is the shape of the plan; `STATE.md` is where we actually are.
 
 ## Tech stack
 Vite + React + TypeScript · **painted 2.5D scene engine in plain React/DOM** (no game engine — parallax layers, SVG/canvas FX, a god-camera) · React for UI overlays (dialogue, journal, scrolls) · **Zustand** as single source of truth · localStorage/JSON persistence (with file export/import). No backend, no auth. Runs on `npm run dev`.
@@ -104,6 +171,56 @@ _Visual upgrade after Phase 1: retire the painted/SVG placeholder for 16-bit pix
 - **Per-instance `<canvas>` painted invisibly** (timing/StrictMode-ish). Lesson: **prefer declarative SVG/DOM over imperative canvas for per-element visuals that must reliably paint.** The placeholder sprite is now inline SVG.
 - **Screen Recording WORKS now** (after Sam restarted Claude) → I can self-screenshot via computer-use (read tier: see, can't click). `open_application "Safari"` brings the app window forward. Preview MCP still broken; reloads rely on Vite HMR. Temporal effects (walk-behind) need a live watch, not a still.
 
+## Build journal — Phase 2: the agentic substrate
+_Sam picked **orchestrator–worker (A)** over a peer blackboard, substrate-first with the mock brain, and a manual tick with opt-in timer._
+
+**The honest constraint stated up front and accepted:** a browser-only Vite app **cannot** run autonomous agents. No process persists when the tab closes, and an API key can't live in frontend code. So Phase 3 needs a small Node service; the RPG becomes a *viewer* onto it. Everything built in Phase 2 is deliberately backend-agnostic so that swap is additive.
+
+**What exists now**
+- `src/agent/bus.ts` — routing. The org chart is a HARD constraint: up/down your chain and sideways within a guild is fine; **cross-guild is refused and rerouted via the Elder**; only the Elder addresses the Chairman, except `permission`, which anyone may petition with. `canSend()` is pure, so mock and Claude engines obey identical rules.
+- `src/agent/AgentEngine.ts` — the seam, rewritten. `step(ctx): Promise<AgentAction[]>`. **Agents return intents, never side effects.** That single decision buys interchangeable brains, replayable ticks, guardrails in one place, and the ability to refuse a misbehaving agent *before* it does damage.
+- `src/agent/orchestrator.ts` — the world clock. Two passes per tick (down: Elder → leaders commission/delegate; up: workers act → leaders consolidate → Elder reports) so cause and effect land in the same turn. **Messages produced this tick are delivered next tick** — that's what keeps a turn finite and kills within-tick ping-pong. All budgets live in `LIMITS`.
+- `src/agent/MockAgentEngine.ts` + `mockBehaviour.ts` — reactive scripted agents. Logic in the engine, all flavour/content in `mockBehaviour.ts` (`INITIATIVES`, `VOICE`).
+- Store: `messages`, `permissions`, `bounces`, `tick`, `tickLog`, task-graph mutators. `Quest` is now a task-graph node (`assignedBy`, `dependsOn`, `threadId`, `visibility`, `progress`, `log`).
+- UI: `TickControl` (Advance the Realm + opt-in timer + real pause/kill switch), `Dispatches` (the raven log — filter to/between, plus a rerouted-messages drawer). Permissions feed `NeedsYouNow` at top priority and open an approve/deny dialogue via `interactions.ts`.
+
+**Bugs found by simulating 12 turns headlessly — all of them invisible to a typecheck:**
+1. **Leaders re-offered the same quest every tick forever.** A leader can't see its own outbox, so a pending proposal looked like "nothing happening". Fix: `guildProposals` in `AgentContext`; an unanswered offer counts as open work.
+2. **Permission nag loop.** The gate only checked *pending* permissions, so granting one made the agent immediately re-ask. Fix: check **decided** permissions too — approved ⇒ proceed, denied ⇒ block and stop. Gate now returns `AgentAction | "wait" | null`.
+3. **Cross-guild script bleed.** `initiativeFor()` matched on title alone, so a forwarded aid request made the Scholars run the Merchants' entire launch script, £79 permission request and all. Fix: match on guild **and** title.
+4. Phantom counts in the tick summary (deduped offers were counted as created) and double task creation on delegation.
+
+**Lesson worth keeping: typecheck proves nothing about agent behaviour.** `tsc` was green through every one of the above. The headless harness (transpile `orchestrator.ts` to CJS into `/tmp/sim`, stub `localStorage`, copy `zustand`/`react` into `/tmp/sim/node_modules`, drive it with a script that auto-accepts everything) is the real gate for this layer. Rebuild it before touching agent logic.
+
+**Where the mock runs out:** once every `INITIATIVE` is done the realm genuinely goes quiet (Elder reports, nothing else). That's honest, not broken — add initiatives or decree tasks. Real agents remove the ceiling.
+
+## Build journal — the risk matrix (Sam's design, replaces "ask about everything")
+_Sam's feedback after first running it: "Quests pop at the top and need to be attended to clear. Advancing the realm adds new quests."_
+
+**What was actually wrong** (found by simulating a Chairman who ignores everything): the pile capped at 4, so it wasn't unbounded — but **an unanswered offer counted as its guild's open work, so every guild downed tools behind Sam's inbox.** By turn 5 only one character in the realm was still working. Advancing felt like it only added quests because everything else had jammed. Clearing each item also cost ~4 clicks (Attend → travel → Continue → Accept), against an ADHD rule of ≤ 2.
+
+**Sam's model, which is better than the options offered:** a risk matrix ranks each action, and the rank picks who decides — some in council sessions, some independently with **verification from another agent**, individual approval only for high-risk-by-matrix and anything irreversible.
+
+**`src/agent/risk.ts` — the single place that decides who decides.** `impact (1–4) × reversibility (1–3)`, plus cost and external-facing modifiers. Hard overrides that always win: **irreversible ⇒ Sovereign**, spend > `sovereignCost` (£25) ⇒ Sovereign, external-facing at impact ≥ 3 ⇒ Sovereign. Then bands: ≤3 routine · ≤6 verified · ≤9 council · above ⇒ sovereign; any spend at all is at least council.
+- **routine** — the agent just does it.
+- **verified** — a peer agent must endorse first. Sam never sees it.
+- **council** — onto the docket, settled in a batch session in the Council panel.
+- **sovereign** — Sam personally, on the scroll, one at a time.
+
+**Key design rule: the agent supplies FACTS, the matrix assigns the band.** `PermissionAction` carries `factors`, never a band. An agent cannot talk its way into a lower tier, and `routeFor()` is pure so the mock and a real Claude engine are governed identically. `explainRoute()` produces the plain-English reason, surfaced everywhere — routing is never opaque.
+
+**Peer verification** (`Verification`, `verify` message kind, `verify.request`/`verify.resolve` actions): verifier is a guild peer, else the leader, else the Elder — never yourself. An **objection does not let the agent proceed anyway**; it escalates to a human decision, which is the entire point of the check.
+
+**Measured result, Chairman ignoring everything for 10 turns:** interruptions 4 → **2** (one irreversible migration, one quest offer), 2 decisions settled agent-to-agent, 2 waiting quietly on the docket, and **the realm keeps working throughout** (3–6 tasks in flight, 5 sealed) instead of stalling.
+
+**Two further bugs the simulation caught:** an agent blocked on one task sat idle instead of working its others (`doWork` now walks past anything awaiting a ruling); and only interruptions are budget-capped — the council docket may grow freely, since it's a queue you choose to open rather than a thing shouting at you.
+
+**Tuning:** all thresholds live in `RISK_CONFIG` in `src/agent/risk.ts`. Per-initiative `factors` live in `mockBehaviour.ts`. Changing who-decides-what is a data edit, not a code change.
+
 ## Parked tasks (persist here — task chips don't survive an app restart)
-1. **★ Milestone D — assemble a real pixel scene (Sam is generating the art).** When art lands in `public/sprites/` + `public/scenes/` per `SPRITE_SPEC.md`: add `layers[]` (`_bg`/`_ground`/`_occ*` with `baseline`/`_light`) + per-character `sprite` fields to `src/data/scenes.ts`, then tune coords (`x,y`, occluder `baseline`, `elevationZones`, `lights`, `labelOffset`) by screenshot. Engine is ready — this is wiring + tuning, not new engine code. One set (e.g. the Keep + `elder.png`) is enough to start.
-2. **Phase 2 — real agents.** Swap `MockAgentEngine` → a Claude-backed engine (one line in `src/agent/index.ts`). **Do not start until Sam says.**
+
+_Superseded by `BACKLOG.md` — keep new parked work there. Kept below for the history._
+1. **★ Milestone D — assemble a real pixel scene (Sam is generating the art).** When art lands in `public/sprites/` + `public/scenes/` per `SPRITE_SPEC.md`: add `layers[]` (`_bg`/`_ground`/`_occ*` with `baseline`/`_light`) + per-character `sprite` fields to `src/data/scenes.ts`, then tune coords (`x,y`, occluder `baseline`, `elevationZones`, `lights`, `labelOffset`) by screenshot. Engine is ready — this is wiring + tuning, not new engine code.
+2. ~~**Couriers in the world.**~~ **DONE.** `src/scene/Couriers.tsx` draws every message flying sender → recipient inside the depth layer (arcing flight, kind-coloured tag, staggered 260ms so a burst reads as a flock). Sam's complaint "I ran it but nothing has happened" was accurate and the diagnosis was: it worked fine, but *the world never showed any of it* — all the action lived in panels. Lesson: for this project, agent state that isn't drawn in the world doesn't count as built. The `move` AgentAction is still a no-op (couriers read positions straight from `scene.hotspots`). Couriers only appear on the `realm` overworld, since guild-hall interiors contain a single character. The Chairman's "position" is the Keep door.
+3. ~~**Top up the initiatives.**~~ **DONE.** 23 `INITIATIVE`s now (was 9), mapped to Sam's real domains. Measured over 30 turns with an engaged Chairman: **28 tasks sealed, 85 messages, busy through ~turn 25** (was 10 tasks, quiet from turn 10). Also added `dependsOnTitle` so the leader links `dependsOn` when commissioning — the task graph is finally exercised rather than dead code. And the realm now **says when it runs dry**: `realmIdle` in `AgentContext` → the Elder sends the `IDLE_SUBJECT` notice once (never repeated), and `NeedsYouNow` shows "The realm awaits your word" with a one-click Decree button. A silent idle realm reads as broken — that was the exact failure Sam hit.
+4. **Phase 3 — real agents.** Node service + `ClaudeAgentEngine` (one line in `src/agent/index.ts`). Blocked on Sam getting an Anthropic API key. **Do not start until Sam says.**
