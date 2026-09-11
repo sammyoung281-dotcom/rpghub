@@ -3,5 +3,12 @@ dist
 *.local
 .DS_Store
 
+# SECRETS — the Anthropic API key lives here and must never be committed
+# or bundled into frontend code. Server-side only.
+.env
+server/.env
+*.env
+!*.env.example
+
 # raw source art / working exports (the game uses public/sprites + public/scenes)
 RPG Sprites Version 2/
