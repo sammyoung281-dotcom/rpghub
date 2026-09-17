@@ -99,7 +99,15 @@ export default function Sprite({
           const step = Math.min(SPEED * dt, dist);
           x += (dx / dist) * step;
           y += (dy / dist) * step;
-          facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
+          // Facing is derived from the WHOLE leg (previous waypoint → current
+          // target), not the per-frame delta. The per-frame dx/dy jitters when a
+          // path is near-diagonal (|dx| ≈ |dy|), which made the sprite snap
+          // between left/right (and front/back) every step. The leg vector is
+          // constant for the leg, so facing holds steady while walking.
+          const prev = (target - 1 + path.length) % path.length;
+          const lx = path[target].x - path[prev].x;
+          const ly = path[target].y - path[prev].y;
+          facing = Math.abs(lx) > Math.abs(ly) ? (lx > 0 ? "right" : "left") : ly > 0 ? "down" : "up";
         }
       }
       const lift = elevationAt(x, y, zones);
