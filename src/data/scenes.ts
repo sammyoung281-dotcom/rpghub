@@ -30,18 +30,37 @@ const SHEET = (src: string): SpriteSheet => ({
   fps: 8,
 });
 
-/** A character standing in a room (large). */
-function leader(id: string, charId: string, name: string, emoji: string, accent: string, x: number, y: number, sheet: string) {
+/**
+ * A rectangular patrol loop centred on (cx, cy). The four corners are walked in
+ * order, so the character clearly walks right → down → left → up and the sprite
+ * faces each way in turn — a good visible test that the directional rows map
+ * correctly. `phase` rotates the start corner so a group of characters don't all
+ * pace in lockstep. All sizes are in scene px.
+ */
+function patrol(cx: number, cy: number, w: number, h: number, phase = 0) {
+  const corners = [
+    { x: cx - w / 2, y: cy - h / 2 }, // top-left
+    { x: cx + w / 2, y: cy - h / 2 }, // top-right  (walked left→right along the top)
+    { x: cx + w / 2, y: cy + h / 2 }, // bottom-right (walked down the right side)
+    { x: cx - w / 2, y: cy + h / 2 }, // bottom-left (walked right→left along the bottom)
+  ];
+  const p = ((phase % 4) + 4) % 4;
+  return corners.slice(p).concat(corners.slice(0, p));
+}
+
+/** A character standing in a room (large). Paces a rectangle around its spot. */
+function leader(id: string, charId: string, name: string, emoji: string, accent: string, x: number, y: number, sheet: string, phase = 0) {
+  const wp = patrol(x, y, 210, 120, phase);
   return {
     id,
     characterId: charId,
     name,
     emoji,
     accent,
-    x,
-    y,
+    x: wp[0].x,
+    y: wp[0].y,
     sprite: SHEET(sheet),
-    waypoints: [{ x, y }, { x: x - 70, y: y - 12 }, { x: x + 70, y: y - 8 }],
+    waypoints: wp,
   };
 }
 
@@ -67,12 +86,12 @@ export const SCENES: Record<string, RealmScene> = {
       { id: "d-scholars", to: "scholars", label: "The Scholars' Tower", x: 1000, y: 520, w: 170, h: 210 },
     ],
     hotspots: [
-      smallChar("r-elder", "elder", "Maeve the Elder", "🦉", "#7b5fa0", 690, 360, "/sprites/elder.png"),
-      smallChar("r-brannock", "brannock", "Brannock Quillfeather", "🦊", "#b8860b", 300, 440, "/sprites/brannock.png"),
-      smallChar("r-tasha", "tasha", "Tasha Coppernick", "🦝", "#9c6a3c", 380, 470, "/sprites/tasha.png"),
-      smallChar("r-edmund", "edmund", "Magister Edmund Vell", "🦡", "#4a6d8c", 1070, 480, "/sprites/edmund.png"),
-      smallChar("r-wren", "wren", "Wren Hollowmoor", "🦔", "#a85b3a", 430, 660, "/sprites/wren.png"),
-      smallChar("r-lyra", "lyra", "Lyra Pageturner", "🦌", "#6b8e4e", 1000, 670, "/sprites/lyra.png"),
+      smallChar("r-elder", "elder", "Maeve the Elder", "🦉", "#7b5fa0", 690, 360, "/sprites/elder.png", 0),
+      smallChar("r-brannock", "brannock", "Brannock Quillfeather", "🦊", "#b8860b", 300, 440, "/sprites/brannock.png", 1),
+      smallChar("r-tasha", "tasha", "Tasha Coppernick", "🦝", "#9c6a3c", 380, 470, "/sprites/tasha.png", 2),
+      smallChar("r-edmund", "edmund", "Magister Edmund Vell", "🦡", "#4a6d8c", 1070, 480, "/sprites/edmund.png", 3),
+      smallChar("r-wren", "wren", "Wren Hollowmoor", "🦔", "#a85b3a", 430, 660, "/sprites/wren.png", 1),
+      smallChar("r-lyra", "lyra", "Lyra Pageturner", "🦌", "#6b8e4e", 1000, 670, "/sprites/lyra.png", 3),
     ],
   },
 
@@ -86,8 +105,8 @@ export const SCENES: Record<string, RealmScene> = {
     id: "merchants", name: "The Merchant's Guild", emoji: "🪙", width: W, height: H, spriteHeight: 190,
     layers: [{ src: "/scenes/merchants_bg.png", z: "background", parallax: 1 }],
     hotspots: [
-      leader("hs-brannock", "brannock", "Brannock Quillfeather", "🦊", "#b8860b", 560, 600, "/sprites/brannock.png"),
-      leader("hs-tasha", "tasha", "Tasha Coppernick", "🦝", "#9c6a3c", 880, 620, "/sprites/tasha.png"),
+      leader("hs-brannock", "brannock", "Brannock Quillfeather", "🦊", "#b8860b", 560, 600, "/sprites/brannock.png", 0),
+      leader("hs-tasha", "tasha", "Tasha Coppernick", "🦝", "#9c6a3c", 880, 620, "/sprites/tasha.png", 2),
     ],
   },
 
@@ -111,17 +130,18 @@ export const SCENES: Record<string, RealmScene> = {
 };
 
 /** A small wandering figure on the overworld. */
-function smallChar(id: string, charId: string, name: string, emoji: string, accent: string, x: number, y: number, sheet: string) {
+function smallChar(id: string, charId: string, name: string, emoji: string, accent: string, x: number, y: number, sheet: string, phase = 0) {
+  const wp = patrol(x, y, 150 + phase * 12, 96, phase);
   return {
     id,
     characterId: charId,
     name,
     emoji,
     accent,
-    x,
-    y,
+    x: wp[0].x,
+    y: wp[0].y,
     sprite: SHEET(sheet),
-    waypoints: [{ x, y }, { x: x - 36, y: y - 6 }, { x: x + 36, y: y + 4 }],
+    waypoints: wp,
   };
 }
 
