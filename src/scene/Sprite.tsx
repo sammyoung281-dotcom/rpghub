@@ -44,7 +44,6 @@ export default function Sprite({
 
   useEffect(() => {
     const root = rootRef.current!;
-    const fps = sheet?.fps ?? 8;
     const path = spot.waypoints && spot.waypoints.length > 1 ? spot.waypoints : null;
 
     let x = spot.x;
@@ -59,7 +58,6 @@ export default function Sprite({
 
     const apply = () => {
       if (!figRef.current) return;
-      const frame = moving ? Math.floor(t * fps) % 4 : -1;
       if (sheet) {
         let row = sheet.rows[facing];
         let flip = false;
@@ -68,14 +66,14 @@ export default function Sprite({
           flip = true;
         }
         row = row ?? 0;
-        // The generated walk frames are clean in profile (left/right) but the
-        // front/back rows contain mirror-flipped poses — the held item (staff,
-        // tankard, lantern) swaps hands each step. So animate the walk cycle
-        // only when facing left/right; when facing up/down, hold the idle frame
-        // and add a small vertical bob so movement still reads, without the flip.
-        const isSide = facing === "left" || facing === "right";
-        const col = moving && isSide ? sheet.walkFrames[frame % sheet.walkFrames.length] : sheet.idleFrame;
-        const bob = moving && !isSide ? Math.abs(Math.sin(t * 9)) * sheet.frameH * drawScale * 0.06 : 0;
+        // The generated sheets have a correct idle/standing frame per direction,
+        // but the *walk* frames are mirror-flipped copies (the held item swaps
+        // hands each step, and the whole figure flips). Rather than play those,
+        // we hold the direction's idle frame and add a small vertical bob while
+        // moving — so the character faces the right way and reads as walking,
+        // with nothing ever flipping. (A true leg-walk needs de-mirrored art.)
+        const col = sheet.idleFrame;
+        const bob = moving ? Math.abs(Math.sin(t * 9)) * sheet.frameH * drawScale * 0.06 : 0;
         const el = figRef.current;
         el.style.backgroundPosition = `-${col * sheet.frameW * drawScale}px -${row * sheet.frameH * drawScale}px`;
         el.style.transform = `translate(-50%, calc(-100% - ${bob}px)) scale(${flip ? -scale : scale}, ${scale})`;
