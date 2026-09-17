@@ -68,10 +68,17 @@ export default function Sprite({
           flip = true;
         }
         row = row ?? 0;
-        const col = moving ? sheet.walkFrames[frame % sheet.walkFrames.length] : sheet.idleFrame;
+        // The generated walk frames are clean in profile (left/right) but the
+        // front/back rows contain mirror-flipped poses — the held item (staff,
+        // tankard, lantern) swaps hands each step. So animate the walk cycle
+        // only when facing left/right; when facing up/down, hold the idle frame
+        // and add a small vertical bob so movement still reads, without the flip.
+        const isSide = facing === "left" || facing === "right";
+        const col = moving && isSide ? sheet.walkFrames[frame % sheet.walkFrames.length] : sheet.idleFrame;
+        const bob = moving && !isSide ? Math.abs(Math.sin(t * 9)) * sheet.frameH * drawScale * 0.06 : 0;
         const el = figRef.current;
         el.style.backgroundPosition = `-${col * sheet.frameW * drawScale}px -${row * sheet.frameH * drawScale}px`;
-        el.style.transform = `translate(-50%, -100%) scale(${flip ? -scale : scale}, ${scale})`;
+        el.style.transform = `translate(-50%, calc(-100% - ${bob}px)) scale(${flip ? -scale : scale}, ${scale})`;
         el.style.filter = glow;
       }
       if (shadowRef.current) shadowRef.current.style.transform = `translate(-50%, -50%) scale(${scale})`;
