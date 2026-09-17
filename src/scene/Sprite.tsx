@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { ElevationZone, Facing, LightSource, SceneHotspot, Urgency } from "../types";
 import { URGENCY_COLOR } from "../types";
 import { depthScaleAt, elevationAt, lightTint } from "./depth";
+import { asset } from "../asset";
 
 /**
  * An animated character sprite. Renders a painterly sheet (`spot.sprite`) —
@@ -129,7 +130,7 @@ export default function Sprite({
           style={{
             width: sheet.frameW * drawScale,
             height: sheet.frameH * drawScale,
-            backgroundImage: `url(${sheet.src})`,
+            backgroundImage: `url(${asset(sheet.src)})`,
             backgroundSize: `${sheet.cols * sheet.frameW * drawScale}px ${4 * sheet.frameH * drawScale}px`,
           }}
           onClick={(e) => { e.stopPropagation(); onClick(); }}

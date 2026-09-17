@@ -7,6 +7,7 @@ import Motes from "./Motes";
 import PixelPlaceholder from "./PixelPlaceholder";
 import Couriers from "./Couriers";
 import { openCharacterDialogue } from "./interactions";
+import { asset } from "../asset";
 import "./scene.css";
 
 interface RenderLayer {
@@ -66,7 +67,7 @@ export default function SceneStage() {
     const behindL: RenderLayer[] = L.filter((l) => l.z === "background" || l.z === "ground").map((l, i) => ({
       key: `b-${i}`,
       parallax: l.parallax ?? 1,
-      node: <img className="scene-img" src={l.src} alt="" style={{ width: "100%", height: "100%" }} draggable={false} />,
+      node: <img className="scene-img" src={asset(l.src)} alt="" style={{ width: "100%", height: "100%" }} draggable={false} />,
     }));
     if (behindL.length === 0) {
       behindL.push({ key: "pixel-placeholder", parallax: 1, node: <PixelPlaceholder scene={scene} /> });
@@ -111,7 +112,7 @@ export default function SceneStage() {
             <img
               key={`occ-${i}`}
               className="scene-img occluder"
-              src={l.src}
+              src={asset(l.src)}
               alt=""
               style={{ width: scene.width, height: scene.height, zIndex: Math.round(l.baseline ?? scene.height) }}
               draggable={false}
@@ -139,7 +140,7 @@ export default function SceneStage() {
 
         {lights.map((l, i) => (
           <div key={`light-${i}`} className="scene-layer light-layer" style={{ width: scene.width, height: scene.height, transform: layerTransform(l.parallax ?? 1) }}>
-            <img className="pixel-img" src={l.src} alt="" style={{ width: "100%", height: "100%" }} draggable={false} />
+            <img className="pixel-img" src={asset(l.src)} alt="" style={{ width: "100%", height: "100%" }} draggable={false} />
           </div>
         ))}
       </div>
